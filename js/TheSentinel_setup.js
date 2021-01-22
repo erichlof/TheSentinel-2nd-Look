@@ -332,7 +332,7 @@ function initSceneData()
 
 	// set camera's field of view
 	worldCamera.fov = 40;
-	focusDistance = 250;
+	apertureSize = 0.1;
 
 	// position and orient camera
 	cameraControlsObject.position.set(0, 100, 370);
@@ -1977,6 +1977,9 @@ function updateVariablesAndUniforms()
 		canPressR = true;
 	}
 
+	if (apertureSize > 1.0)
+		apertureSize = 1.0;
+
 
 	// SPHERE LIGHT
 	lightAngle += 0.02 * frameTime;
@@ -2025,9 +2028,9 @@ function updateVariablesAndUniforms()
 		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
 		cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code + "<br>";
 		viewRayTargetPosition.copy(intersectArray[0].point);
-		//if (tiles[raycastIndex].code == 'checkColor0' || tiles[raycastIndex].code == 'checkColor1')
 		viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
-		//else viewRayTargetPosition.sub(cameraDirectionVector.multiplyScalar(2));
+		focusDistance = intersectArray[0].distance;
+		//pathTracingUniforms.uFocusDistance.value = focusDistance;
 	}	
 	else 
 	{
@@ -2037,7 +2040,7 @@ function updateVariablesAndUniforms()
 	
 	// INFO
 	cameraInfoElement.innerHTML += "Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance + "<br>" + "Press SPACEBAR to generate new landscape | Press R to randomize game objects";
+		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press R to randomize game objects";
 
 } // end function updateVariablesAndUniforms()
 
