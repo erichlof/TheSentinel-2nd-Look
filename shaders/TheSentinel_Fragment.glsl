@@ -768,7 +768,8 @@ void main( void )
 	vec3 rayDir = normalize( pixelPos.x * camRight * uULen + pixelPos.y * camUp * uVLen + camForward );
 	
 	// depth of field
-	vec3 focalPoint = uFocusDistance * rayDir;
+	//vec3 focalPoint = uFocusDistance * rayDir;
+	vec3 focalPoint = (distance(cameraPosition, uViewRayTargetPosition) - 1.0) * rayDir;
 	float randomAngle = rand() * TWO_PI; // pick random point on aperture
 	float randomRadius = rand() * uApertureSize;
 	vec3  randomAperturePos = ( cos(randomAngle) * camRight + sin(randomAngle) * camUp ) * sqrt(randomRadius);
