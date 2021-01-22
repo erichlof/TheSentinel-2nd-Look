@@ -2023,7 +2023,7 @@ function updateVariablesAndUniforms()
 	if (intersectArray.length > 0)
 	{
 		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
-		cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code;
+		cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code + "<br>";
 		viewRayTargetPosition.copy(intersectArray[0].point);
 		//if (tiles[raycastIndex].code == 'checkColor0' || tiles[raycastIndex].code == 'checkColor1')
 		viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
@@ -2032,12 +2032,12 @@ function updateVariablesAndUniforms()
 	else 
 	{
 		viewRayTargetPosition.set(10000, 10000, 10000);
-		cameraInfoElement.innerHTML = "no intersection";
+		cameraInfoElement.innerHTML = "no intersection" + "<br>";
 	}
-	/* 
+	
 	// INFO
-	cameraInfoElement.innerHTML = "Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance + "<br>" + "Press SPACEBAR to generate new landscape | Press R to randomize game objects"; */
+	cameraInfoElement.innerHTML += "Aperture: " + apertureSize.toFixed(2) +
+		" / FocusDistance: " + focusDistance + "<br>" + "Press SPACEBAR to generate new landscape | Press R to randomize game objects";
 
 } // end function updateVariablesAndUniforms()
 
