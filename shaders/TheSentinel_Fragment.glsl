@@ -12,6 +12,7 @@ uniform sampler2D tLandscape_AABBTexture;
 uniform mat4 uObjInvMatrices[30];
 uniform vec4 uTopLevelAABBTree[200];
 uniform vec3 uSunDirection;
+uniform vec3 uViewRayTargetPosition;
 
 #define INV_TEXTURE_WIDTH 0.00390625 // (1 / 256 texture width)
 
@@ -272,6 +273,17 @@ void SceneIntersect( Ray r )
 	bool isRayExiting;
 
 	intersec.t = INFINITY;
+
+	// viewing ray target metal sphere (for debug mode)
+	d = SphereIntersect( 2.0, uViewRayTargetPosition, r );
+	if (d < intersec.t)
+	{
+		intersec.t = d;
+		intersec.normal = normalize((r.origin + r.direction * intersec.t) - uViewRayTargetPosition);
+		intersec.emission = vec3(0);
+		intersec.color = vec3(1);//vec3(1.0, 0.765557, 0.336057);
+		intersec.type = SPEC;
+	}
 
 	// LANDSCAPE BVH ////////////
 
@@ -540,7 +552,7 @@ vec3 getSkyColor(in vec3 rayDirection)
 	vec3 bottomColor = vec3(0);
 	vec3 skyColor = mix(bottomColor, topColor, clamp(pow((rayDirection.y + 1.0), 5.0), 0.0, 1.0) );
 	float sun = max(0.0, dot(rayDirection, uSunDirection));
-	return skyColor + (pow(sun, 100.0) * vec3(0.2)) + (pow(sun, 10000.0) * vec3(5));
+	return skyColor + (pow(sun, 180.0) * vec3(0.2,0.1,0.0)) + (pow(sun, 2000.0) * vec3(1,1,0)) + (pow(sun, 10000.0) * vec3(5,3,1));
 }
 
 //---------------------------------------------------------------------------
