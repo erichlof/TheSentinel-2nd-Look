@@ -182,6 +182,12 @@ let tX8 = 0;
 let tX2 = 0;
 let modelsLoadedCount = 0;
 
+let raycaster = new THREE.Raycaster();
+let intersectArray = [];
+let raycastIndex = 0;
+let viewRayTargetPosition = new THREE.Vector3();
+
+
 
 function MaterialObject()
 {
@@ -566,6 +572,7 @@ function initPathTracingShaders()
 	pathTracingUniforms.uTopLevelAABBTree = { value: topLevelAABBTree };
 	pathTracingUniforms.uObjInvMatrices = { value: objInvMatrices };
 	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };
+	pathTracingUniforms.uViewRayTargetPosition = { value: viewRayTargetPosition };
 
 	pathTracingDefines = {
 		//NUMBER_OF_TRIANGLES: total_number_of_triangles
@@ -2010,9 +2017,27 @@ function updateVariablesAndUniforms()
 	pathTracingUniforms.uVLen.value = Math.tan(fovScale);
 	pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
 
+	intersectArray.length = 0;
+	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
+	raycaster.intersectObject(planeMesh, false, intersectArray);
+	if (intersectArray.length > 0)
+	{
+		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
+		cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code;
+		viewRayTargetPosition.copy(intersectArray[0].point);
+		//if (tiles[raycastIndex].code == 'checkColor0' || tiles[raycastIndex].code == 'checkColor1')
+		viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
+		//else viewRayTargetPosition.sub(cameraDirectionVector.multiplyScalar(2));
+	}	
+	else 
+	{
+		viewRayTargetPosition.set(10000, 10000, 10000);
+		cameraInfoElement.innerHTML = "no intersection";
+	}
+	/* 
 	// INFO
 	cameraInfoElement.innerHTML = "Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance + "<br>" + "Press SPACEBAR to generate new landscape | Press R to randomize game objects";
+		" / FocusDistance: " + focusDistance + "<br>" + "Press SPACEBAR to generate new landscape | Press R to randomize game objects"; */
 
 } // end function updateVariablesAndUniforms()
 
