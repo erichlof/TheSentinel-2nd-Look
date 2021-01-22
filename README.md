@@ -10,7 +10,6 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 * Press SPACEBAR to generate a new random landscape (cycles through 4 color themes)
 * Press R to randomly re-position game objects (will be disabled when gameplay added)
 * Right/Left Arrows to open/close camera aperture (depth of field effect)
-* Up/Down Arrows to increase/decrease Focus Distance (location in the scene of sharp focus)
 <br><br>
 
 <h2>TODO</h2>
