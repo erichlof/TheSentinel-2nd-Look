@@ -186,6 +186,8 @@ let raycaster = new THREE.Raycaster();
 let intersectArray = [];
 let raycastIndex = 0;
 let viewRayTargetPosition = new THREE.Vector3();
+let selectedTile = 0;
+let blinkAngle = 0.0;
 
 
 
@@ -332,7 +334,7 @@ function initSceneData()
 
 	// set camera's field of view
 	worldCamera.fov = 40;
-	apertureSize = 0.1;
+	apertureSize = 0.0;
 
 	// position and orient camera
 	cameraControlsObject.position.set(0, 100, 370);
@@ -573,6 +575,7 @@ function initPathTracingShaders()
 	pathTracingUniforms.uObjInvMatrices = { value: objInvMatrices };
 	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };
 	pathTracingUniforms.uViewRayTargetPosition = { value: viewRayTargetPosition };
+	pathTracingUniforms.uSelectedTile = { value: selectedTile };
 
 	pathTracingDefines = {
 		//NUMBER_OF_TRIANGLES: total_number_of_triangles
@@ -660,12 +663,12 @@ function buildNewLevel()
 	else if (levelCounter % 4 == 1)
 	{
 		checkColor0.setRGB(0.35, 0.35, 0.05); // yellow // YELLOW/PURPLE combo
-		checkColor1.setRGB(0.1, 0.001, 0.25); // purple
+		checkColor1.setRGB(0.05, 0.001, 0.25); // purple
 	}
 	else if (levelCounter % 4 == 2)
 	{
-		checkColor0.setRGB(0.4, 0.001, 0.01); // red // RED/BLUE combo
-		checkColor1.setRGB(0.001, 0.001, 0.25); // blue
+		checkColor0.setRGB(0.25, 0.001, 0.01); // red // RED/BLUE combo
+		checkColor1.setRGB(0.001, 0.001, 0.2); // blue
 	}
 	else if (levelCounter % 4 == 3)
 	{
@@ -2023,9 +2026,24 @@ function updateVariablesAndUniforms()
 	intersectArray.length = 0;
 	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
 	raycaster.intersectObject(planeMesh, false, intersectArray);
+	selectedTile = -10;
 	if (intersectArray.length > 0)
 	{
 		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
+		
+		if (tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped')
+		{
+			if (Math.cos(blinkAngle % (Math.PI * 2)) > 0)
+			{
+				if (intersectArray[0].face.a % 6 > 0)
+					selectedTile = ((intersectArray[0].face.a - 3) / 3) * 8;
+				else selectedTile = (intersectArray[0].face.a / 3) * 8;
+			}
+
+			blinkAngle += Math.PI * 3 * frameTime;
+		}
+		else blinkAngle = 0;
+		
 		cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code + "<br>";
 		viewRayTargetPosition.copy(intersectArray[0].point);
 		viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
@@ -2037,6 +2055,8 @@ function updateVariablesAndUniforms()
 		viewRayTargetPosition.set(10000, 10000, 10000);
 		cameraInfoElement.innerHTML = "no intersection" + "<br>";
 	}
+
+	pathTracingUniforms.uSelectedTile.value = selectedTile;
 	
 	// INFO
 	cameraInfoElement.innerHTML += "Aperture: " + apertureSize.toFixed(2) +
