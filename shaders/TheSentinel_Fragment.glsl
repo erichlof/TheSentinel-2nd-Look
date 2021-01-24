@@ -13,6 +13,7 @@ uniform mat4 uObjInvMatrices[30];
 uniform vec4 uTopLevelAABBTree[200];
 uniform vec3 uSunDirection;
 uniform vec3 uViewRayTargetPosition;
+uniform float uSelectedTile;
 
 #define INV_TEXTURE_WIDTH 0.00390625 // (1 / 256 texture width)
 
@@ -403,7 +404,7 @@ void SceneIntersect( Ray r )
 		// else use vertex normals
 		triangleW = 1.0 - triangleU - triangleV;
 		intersec.normal = normalize(triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
-		intersec.color = vd2.yzw;
+		intersec.color = (triangleID == uSelectedTile || triangleID == uSelectedTile + 8.0) ? vec3(0,2,1) : vd2.yzw;
 		intersec.type = DIFF;
 
 		hitPos = r.origin + r.direction * intersec.t;
