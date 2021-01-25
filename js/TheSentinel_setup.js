@@ -552,447 +552,11 @@ function initSceneData()
 	landscape_aabbDataTexture.generateMipmaps = false;
 
 	
-
 	// TOP LEVEL BVH // must be large enough to hold topLevel nodes * 8 (two THREE.Vector4's)
-	topLevel_aabb_array = new Float32Array(1024); 
+	topLevel_aabb_array = new Float32Array(1024);
 
 
-	buildNewLevel();
-
-
-} // end function initSceneData()
-
-
-// called automatically from within initTHREEjs() function
-function initPathTracingShaders() 
-{
-	// scene/demo-specific uniforms go here	
-	pathTracingUniforms.tModels_triangleDataTexture2DArray = { value: models_triangleDataTexture2DArray };
-	pathTracingUniforms.tModels_aabbDataTexture2DArray = { value: models_aabbDataTexture2DArray };
-	pathTracingUniforms.tLandscape_TriangleTexture = { value: landscape_triangleDataTexture };
-	pathTracingUniforms.tLandscape_AABBTexture = { value: landscape_aabbDataTexture };
-	pathTracingUniforms.uTopLevelAABBTree = { value: topLevelAABBTree };
-	pathTracingUniforms.uObjInvMatrices = { value: objInvMatrices };
-	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };
-	pathTracingUniforms.uViewRayTargetPosition = { value: viewRayTargetPosition };
-	pathTracingUniforms.uSelectedTile = { value: selectedTile };
-
-	pathTracingDefines = {
-		//NUMBER_OF_TRIANGLES: total_number_of_triangles
-	};
-
-	// load vertex and fragment shader files that are used in the pathTracing material, mesh and scene
-	fileLoader.load('shaders/common_PathTracing_Vertex.glsl', function (shaderText)
-	{
-		pathTracingVertexShader = shaderText;
-
-		createPathTracingMaterial();
-	});
-
-} // end function initPathTracingShaders()
-
-
-// called automatically from within initPathTracingShaders() function above
-function createPathTracingMaterial() 
-{
-	fileLoader.load('shaders/TheSentinel_Fragment.glsl', function (shaderText)
-	{
-
-		pathTracingFragmentShader = shaderText;
-
-		pathTracingMaterial = new THREE.ShaderMaterial({
-			uniforms: pathTracingUniforms,
-			defines: pathTracingDefines,
-			vertexShader: pathTracingVertexShader,
-			fragmentShader: pathTracingFragmentShader,
-			depthTest: false,
-			depthWrite: false
-		});
-
-		pathTracingMesh = new THREE.Mesh(pathTracingGeometry, pathTracingMaterial);
-		pathTracingScene.add(pathTracingMesh);
-
-		// the following keeps the large scene ShaderMaterial quad right in front 
-		//   of the camera at all times. This is necessary because without it, the scene 
-		//   quad will fall out of view and get clipped when the camera rotates past 180 degrees.
-		worldCamera.add(pathTracingMesh);
-
-	});
-
-} // end function createPathTracingMaterial()
-
-
-function buildNewLevel()
-{
-
-	for (let i = 0; i < numVertices; i++)
-	{
-		for (let j = 0; j < numVertices; j++)
-		{
-			index = i * numVertices + j;
-			vertexHeights[index] = 0;
-		}
-	}
-
-	// reset any tiles that had their triangle vertices flipped 'flipped' to correctly render certain connectors
-	for (let i = 0; i < numTiles; i++)
-	{
-		for (let j = 0; j < numTiles; j++)
-		{
-			tileIndex = i * numTiles + j;
-			vertexIndex = (i * numTiles * 18) + (j * 18);
-
-			if (tiles[tileIndex].code == 'flipped')
-			{
-				landscape_vpa[vertexIndex + 6] = landscape_vpa[vertexIndex + 15];
-				landscape_vpa[vertexIndex + 7] = landscape_vpa[vertexIndex + 16];
-				landscape_vpa[vertexIndex + 8] = landscape_vpa[vertexIndex + 17];
-				landscape_vpa[vertexIndex + 9] = landscape_vpa[vertexIndex + 3];
-				landscape_vpa[vertexIndex + 10] = landscape_vpa[vertexIndex + 4];
-				landscape_vpa[vertexIndex + 11] = landscape_vpa[vertexIndex + 5];
-			}
-		}
-	}
-
-	levelCounter++;
-	if (levelCounter % 4 == 0)
-	{
-		checkColor0.setRGB(0.001, 0.35, 0.001); // green // GREEN/BLUE combo
-		checkColor1.setRGB(0.001, 0.001, 0.3); // blue
-	}
-	else if (levelCounter % 4 == 1)
-	{
-		checkColor0.setRGB(0.35, 0.35, 0.05); // yellow // YELLOW/PURPLE combo
-		checkColor1.setRGB(0.05, 0.001, 0.25); // purple
-	}
-	else if (levelCounter % 4 == 2)
-	{
-		checkColor0.setRGB(0.25, 0.001, 0.01); // red // RED/BLUE combo
-		checkColor1.setRGB(0.001, 0.001, 0.2); // blue
-	}
-	else if (levelCounter % 4 == 3)
-	{
-		checkColor0.setRGB(0.35, 0.35, 0.05); // yellow // YELLOW/RED combo
-		checkColor1.setRGB(0.3, 0.001, 0.01); // red
-	}
-
-
-	// initialize object properties and arrays
-	code = '';
-	for (let i = 0; i < numTiles; i++)
-	{
-		if (code == 'checkColor0')
-			code = 'checkColor1';
-		else code = 'checkColor0';
-
-		for (let j = 0; j < numTiles; j++)
-		{
-			tileIndex = i * numTiles + j;
-			vertexIndex = (i * numTiles * 18) + (j * 18);
-			if (code == 'checkColor0')
-			{
-				// 1st triangle of square tile
-				landscape_vca[vertexIndex + 0] = checkColor0.r; landscape_vca[vertexIndex + 1] = checkColor0.g; landscape_vca[vertexIndex + 2] = checkColor0.b;
-				landscape_vca[vertexIndex + 3] = checkColor0.r; landscape_vca[vertexIndex + 4] = checkColor0.g; landscape_vca[vertexIndex + 5] = checkColor0.b;
-				landscape_vca[vertexIndex + 6] = checkColor0.r; landscape_vca[vertexIndex + 7] = checkColor0.g; landscape_vca[vertexIndex + 8] = checkColor0.b;
-				// 2nd triangle of square tile
-				landscape_vca[vertexIndex + 9] = checkColor0.r; landscape_vca[vertexIndex + 10] = checkColor0.g; landscape_vca[vertexIndex + 11] = checkColor0.b;
-				landscape_vca[vertexIndex + 12] = checkColor0.r; landscape_vca[vertexIndex + 13] = checkColor0.g; landscape_vca[vertexIndex + 14] = checkColor0.b;
-				landscape_vca[vertexIndex + 15] = checkColor0.r; landscape_vca[vertexIndex + 16] = checkColor0.g; landscape_vca[vertexIndex + 17] = checkColor0.b;
-			}
-			else
-			{
-				// 1st triangle of square tile
-				landscape_vca[vertexIndex + 0] = checkColor1.r; landscape_vca[vertexIndex + 1] = checkColor1.g; landscape_vca[vertexIndex + 2] = checkColor1.b;
-				landscape_vca[vertexIndex + 3] = checkColor1.r; landscape_vca[vertexIndex + 4] = checkColor1.g; landscape_vca[vertexIndex + 5] = checkColor1.b;
-				landscape_vca[vertexIndex + 6] = checkColor1.r; landscape_vca[vertexIndex + 7] = checkColor1.g; landscape_vca[vertexIndex + 8] = checkColor1.b;
-				// 2nd triangle of square tile
-				landscape_vca[vertexIndex + 9] = checkColor1.r; landscape_vca[vertexIndex + 10] = checkColor1.g; landscape_vca[vertexIndex + 11] = checkColor1.b;
-				landscape_vca[vertexIndex + 12] = checkColor1.r; landscape_vca[vertexIndex + 13] = checkColor1.g; landscape_vca[vertexIndex + 14] = checkColor1.b;
-				landscape_vca[vertexIndex + 15] = checkColor1.r; landscape_vca[vertexIndex + 16] = checkColor1.g; landscape_vca[vertexIndex + 17] = checkColor1.b;
-			}
-
-			// initialize geometry height values
-			// 1st triangle
-			// top left corner
-			landscape_vpa[vertexIndex + 1] = 0; // + 1 = the Y component
-			// bottom left corner
-			landscape_vpa[vertexIndex + 4] = 0; // + 4 = the Y component
-			// top right corner
-			landscape_vpa[vertexIndex + 7] = 0; // + 7 = the Y component
-			// 2nd tringle
-			// bottom left corner
-			landscape_vpa[vertexIndex + 10] = 0;
-			// bottom right corner
-			landscape_vpa[vertexIndex + 13] = 0;
-			// top right corner
-			landscape_vpa[vertexIndex + 16] = 0;
-
-			tiles[tileIndex].level = 0;
-			tiles[tileIndex].code = code;
-
-			if (code == 'checkColor0')
-				code = 'checkColor1';
-			else code = 'checkColor0';
-		}
-	}
-
-
-	i_offset = Math.round(Math.random() * numVertices);
-	j_offset = Math.round(Math.random() * numVertices);
-	frequency = 0.02;
-	amplitude = 2;
-	for (let i = 0; i < numVertices; i++)
-	{
-		for (let j = 0; j < numVertices; j++)
-		{
-			raiseAmount = simplex.noise((i + i_offset) * frequency, (j + j_offset) * frequency) * amplitude;
-			index = i * numVertices + j;
-			vertexHeights[index] += raiseAmount;
-		}
-	}
-	i_offset = Math.round(Math.random() * numVertices);
-	j_offset = Math.round(Math.random() * numVertices);
-	frequency += 0.02;
-	//amplitude -= 0.5;
-	for (let i = 0; i < numVertices; i++)
-	{
-		for (let j = 0; j < numVertices; j++)
-		{
-			raiseAmount = simplex.noise((i + i_offset) * frequency, (j + j_offset) * frequency) * amplitude;
-			index = i * numVertices + j;
-			vertexHeights[index] += raiseAmount;
-		}
-	}
-	i_offset = Math.round(Math.random() * numVertices);
-	j_offset = Math.round(Math.random() * numVertices);
-	frequency += 0.02;
-	//amplitude -= 0.5;
-	for (let i = 0; i < numVertices; i++)
-	{
-		for (let j = 0; j < numVertices; j++)
-		{
-			raiseAmount = simplex.noise((i + i_offset) * frequency, (j + j_offset) * frequency) * amplitude;
-			index = i * numVertices + j;
-			vertexHeights[index] += raiseAmount;
-		}
-	}
-	i_offset = Math.round(Math.random() * numVertices);
-	j_offset = Math.round(Math.random() * numVertices);
-	frequency += 0.02;
-	//amplitude -= 0.5;
-	for (let i = 0; i < numVertices; i++)
-	{
-		for (let j = 0; j < numVertices; j++)
-		{
-			raiseAmount = simplex.noise((i + i_offset) * frequency, (j + j_offset) * frequency) * amplitude;
-			index = i * numVertices + j;
-			vertexHeights[index] += raiseAmount;
-			vertexHeights[index] = Math.floor(vertexHeights[index]) * 10;
-		}
-	}
-
-
-	for (let i = 0; i < numTiles; i++)
-	{
-		for (let j = 0; j < numTiles; j++)
-		{
-			index = i * numVertices + j;
-			nextRowIndex = (i + 1) * numVertices + j;
-			vertexIndex = (i * numTiles * 18) + (j * 18);
-
-			landscape_vpa[vertexIndex + 1] = vertexHeights[index];// top left corner
-
-			landscape_vpa[vertexIndex + 4] = vertexHeights[nextRowIndex];// bottom left corner
-
-			landscape_vpa[vertexIndex + 7] = vertexHeights[index + 1];// top right corner
-
-			landscape_vpa[vertexIndex + 10] = vertexHeights[nextRowIndex];// bottom left corner
-
-			landscape_vpa[vertexIndex + 13] = vertexHeights[nextRowIndex + 1];// bottom right corner
-
-			landscape_vpa[vertexIndex + 16] = vertexHeights[index + 1];// top right corner
-
-		} // for (let j = 0; j < numTiles; j++)
-	} // end for (let i = 0; i < numTiles; i++)
-
-
-	// make connecting panels a white color
-	for (let i = 0; i < numTiles; i++)
-	{
-		for (let j = 0; j < numTiles; j++)
-		{
-			tileIndex = i * numTiles + j;
-			index = i * numVertices + j;
-			nextRowIndex = (i + 1) * numVertices + j;
-			vertexIndex = (i * numTiles * 18) + (j * 18);
-
-			if (vertexHeights[index] != vertexHeights[index + 1] ||
-				vertexHeights[index] != vertexHeights[nextRowIndex] ||
-				vertexHeights[index] != vertexHeights[nextRowIndex + 1] ||
-				vertexHeights[nextRowIndex + 1] != vertexHeights[index + 1] ||
-				vertexHeights[nextRowIndex + 1] != vertexHeights[nextRowIndex])
-			{
-				for (let k = 0; k < 18; k++)
-					landscape_vca[vertexIndex + k] = 1.0;
-				tiles[tileIndex].code = 'connector';
-
-				// check if some of the 2 triangles' vertices need to be swapped in order to make a concave connector
-				if ((vertexHeights[index] < vertexHeights[index + 1] &&
-					vertexHeights[index] < vertexHeights[nextRowIndex] &&
-					vertexHeights[index] < vertexHeights[nextRowIndex + 1]) ||
-					(vertexHeights[index] > vertexHeights[index + 1] &&
-						vertexHeights[index] > vertexHeights[nextRowIndex] &&
-						vertexHeights[index] > vertexHeights[nextRowIndex + 1]))
-				{
-					landscape_vpa[vertexIndex + 6] = landscape_vpa[vertexIndex + 12];
-					landscape_vpa[vertexIndex + 7] = landscape_vpa[vertexIndex + 13];
-					landscape_vpa[vertexIndex + 8] = landscape_vpa[vertexIndex + 14];
-					landscape_vpa[vertexIndex + 9] = landscape_vpa[vertexIndex + 0];
-					landscape_vpa[vertexIndex + 10] = landscape_vpa[vertexIndex + 1];
-					landscape_vpa[vertexIndex + 11] = landscape_vpa[vertexIndex + 2];
-
-					tiles[tileIndex].code = 'flipped';
-				}
-
-				if ((vertexHeights[nextRowIndex + 1] < vertexHeights[index] &&
-					vertexHeights[nextRowIndex + 1] < vertexHeights[index + 1] &&
-					vertexHeights[nextRowIndex + 1] < vertexHeights[nextRowIndex]) ||
-					(vertexHeights[nextRowIndex + 1] > vertexHeights[index] &&
-						vertexHeights[nextRowIndex + 1] > vertexHeights[index + 1] &&
-						vertexHeights[nextRowIndex + 1] > vertexHeights[nextRowIndex]))
-				{
-					landscape_vpa[vertexIndex + 6] = landscape_vpa[vertexIndex + 12];
-					landscape_vpa[vertexIndex + 7] = landscape_vpa[vertexIndex + 13];
-					landscape_vpa[vertexIndex + 8] = landscape_vpa[vertexIndex + 14];
-					landscape_vpa[vertexIndex + 9] = landscape_vpa[vertexIndex + 0];
-					landscape_vpa[vertexIndex + 10] = landscape_vpa[vertexIndex + 1];
-					landscape_vpa[vertexIndex + 11] = landscape_vpa[vertexIndex + 2];
-
-					tiles[tileIndex].code = 'flipped';
-				}
-			}
-
-		} // for (let j = 0; j < numTiles; j++)
-	} // end for (let i = 0; i < numTiles; i++)
-
-
-
-	// LANDSCAPE
-	//planeGeometry.computeFaceNormals();
-	planeMesh.geometry.computeVertexNormals();
-	planeMesh.geometry.attributes.position.needsUpdate = true;
-	planeMesh.geometry.attributes.normal.needsUpdate = true;
-	planeMesh.geometry.attributes.color.needsUpdate = true;
-
-
-	for (let i = 0; i < landscape_total_number_of_triangles; i++) 
-	{
-
-		bounding_box_min.set(Infinity, Infinity, Infinity);
-		bounding_box_max.set(-Infinity, -Infinity, -Infinity);
-
-		iX9 = i * 9;
-		// record vertex positions
-		vp0.set(landscape_vpa[iX9 + 0], landscape_vpa[iX9 + 1], landscape_vpa[iX9 + 2]);
-		vp1.set(landscape_vpa[iX9 + 3], landscape_vpa[iX9 + 4], landscape_vpa[iX9 + 5]);
-		vp2.set(landscape_vpa[iX9 + 6], landscape_vpa[iX9 + 7], landscape_vpa[iX9 + 8]);
-
-		// record vertex colors
-		vc0.set(landscape_vca[iX9 + 0], landscape_vca[iX9 + 1], landscape_vca[iX9 + 2]);
-		vc1.set(landscape_vca[iX9 + 3], landscape_vca[iX9 + 4], landscape_vca[iX9 + 5]);
-		vc2.set(landscape_vca[iX9 + 6], landscape_vca[iX9 + 7], landscape_vca[iX9 + 8]);
-
-		// record vertex normals
-		vn0.set(landscape_vna[iX9 + 0], landscape_vna[iX9 + 1], landscape_vna[iX9 + 2]);
-		vn1.set(landscape_vna[iX9 + 3], landscape_vna[iX9 + 4], landscape_vna[iX9 + 5]);
-		vn2.set(landscape_vna[iX9 + 6], landscape_vna[iX9 + 7], landscape_vna[iX9 + 8]);
-
-		iX32 = i * 32;
-		//slot 0
-		landscape_triangle_array[iX32 + 0] = vp0.x; // r or x
-		landscape_triangle_array[iX32 + 1] = vp0.y; // g or y 
-		landscape_triangle_array[iX32 + 2] = vp0.z; // b or z
-		landscape_triangle_array[iX32 + 3] = vp1.x; // a or w
-
-		//slot 1
-		landscape_triangle_array[iX32 + 4] = vp1.y; // r or x
-		landscape_triangle_array[iX32 + 5] = vp1.z; // g or y
-		landscape_triangle_array[iX32 + 6] = vp2.x; // b or z
-		landscape_triangle_array[iX32 + 7] = vp2.y; // a or w
-
-		//slot 2
-		landscape_triangle_array[iX32 + 8] = vp2.z; // r or x
-		landscape_triangle_array[iX32 + 9] = vc0.x; // g or y
-		landscape_triangle_array[iX32 + 10] = vc0.y; // b or z
-		landscape_triangle_array[iX32 + 11] = vc0.z; // a or w
-
-		//slot 3
-		landscape_triangle_array[iX32 + 12] = vc1.x; // r or x
-		landscape_triangle_array[iX32 + 13] = vc1.y; // g or y
-		landscape_triangle_array[iX32 + 14] = vc1.z; // b or z
-		landscape_triangle_array[iX32 + 15] = vc2.x; // a or w
-
-		//slot 4
-		landscape_triangle_array[iX32 + 16] = vc2.y; // r or x
-		landscape_triangle_array[iX32 + 17] = vc2.z; // g or y
-		landscape_triangle_array[iX32 + 18] = vn0.x; // b or z
-		landscape_triangle_array[iX32 + 19] = vn0.y; // a or w
-
-		//slot 5
-		landscape_triangle_array[iX32 + 20] = vn0.z; // r or x
-		landscape_triangle_array[iX32 + 21] = vn1.x; // g or y
-		landscape_triangle_array[iX32 + 22] = vn1.y; // b or z
-		landscape_triangle_array[iX32 + 23] = vn1.z; // a or w
-
-		//slot 6
-		landscape_triangle_array[iX32 + 24] = vn2.x; // r or x 
-		landscape_triangle_array[iX32 + 25] = vn2.y; // g or y
-		landscape_triangle_array[iX32 + 26] = vn2.z; // b or z
-		landscape_triangle_array[iX32 + 27] = 0; // a or w
-		/*
-		//slot 7
-		landscape_triangle_array[iX32 + 28] = 0; // r or x
-		landscape_triangle_array[iX32 + 29] = 0; // g or y
-		landscape_triangle_array[iX32 + 30] = 0; // b or z
-		landscape_triangle_array[iX32 + 31] = 0; // a or w */
-
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
-
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
-
-		landscape_aabb_array[iX9 + 0] = bounding_box_min.x;
-		landscape_aabb_array[iX9 + 1] = bounding_box_min.y;
-		landscape_aabb_array[iX9 + 2] = bounding_box_min.z;
-		landscape_aabb_array[iX9 + 3] = bounding_box_max.x;
-		landscape_aabb_array[iX9 + 4] = bounding_box_max.y;
-		landscape_aabb_array[iX9 + 5] = bounding_box_max.z;
-		landscape_aabb_array[iX9 + 6] = bounding_box_centroid.x;
-		landscape_aabb_array[iX9 + 7] = bounding_box_centroid.y;
-		landscape_aabb_array[iX9 + 8] = bounding_box_centroid.z;
-
-		landscape_totalWork[i] = i;
-	} // end for (let i = 0; i < landscape_total_number_of_triangles; i++)
-
-
-	console.log("landscape_triangle count:" + landscape_totalWork.length);
-	// Build the BVH acceleration structure, which places a bounding box ('root' of the tree) around all of the 
-	// triangles of the entire mesh, then subdivides each box into 2 smaller boxes.  It continues until it reaches 1 triangle,
-	// which it then designates as a 'leaf'
-	BVH_Build_Iterative(landscape_totalWork, landscape_aabb_array);
-
-
-	landscape_triangleDataTexture.needsUpdate = true;
-	landscape_aabbDataTexture.needsUpdate = true;
-
-
+	// build various game models' BVHs
 	// TREE MODEL
 	for (let i = 0; i < tree_total_number_of_triangles; i++)
 	{
@@ -1800,10 +1364,452 @@ function buildNewLevel()
 	models_aabbDataTexture2DArray.needsUpdate = true;
 
 
+
+	// generate random landscape
+	buildNewLevel();
+
+
+} // end function initSceneData()
+
+
+
+// called automatically from within initTHREEjs() function
+function initPathTracingShaders() 
+{
+	// scene/demo-specific uniforms go here	
+	pathTracingUniforms.tModels_triangleDataTexture2DArray = { value: models_triangleDataTexture2DArray };
+	pathTracingUniforms.tModels_aabbDataTexture2DArray = { value: models_aabbDataTexture2DArray };
+	pathTracingUniforms.tLandscape_TriangleTexture = { value: landscape_triangleDataTexture };
+	pathTracingUniforms.tLandscape_AABBTexture = { value: landscape_aabbDataTexture };
+	pathTracingUniforms.uTopLevelAABBTree = { value: topLevelAABBTree };
+	pathTracingUniforms.uObjInvMatrices = { value: objInvMatrices };
+	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };
+	pathTracingUniforms.uViewRayTargetPosition = { value: viewRayTargetPosition };
+	pathTracingUniforms.uSelectedTile = { value: selectedTile };
+
+	pathTracingDefines = {
+		//NUMBER_OF_TRIANGLES: total_number_of_triangles
+	};
+
+	// load vertex and fragment shader files that are used in the pathTracing material, mesh and scene
+	fileLoader.load('shaders/common_PathTracing_Vertex.glsl', function (shaderText)
+	{
+		pathTracingVertexShader = shaderText;
+
+		createPathTracingMaterial();
+	});
+
+} // end function initPathTracingShaders()
+
+
+
+// called automatically from within initPathTracingShaders() function above
+function createPathTracingMaterial() 
+{
+	fileLoader.load('shaders/TheSentinel_Fragment.glsl', function (shaderText)
+	{
+
+		pathTracingFragmentShader = shaderText;
+
+		pathTracingMaterial = new THREE.ShaderMaterial({
+			uniforms: pathTracingUniforms,
+			defines: pathTracingDefines,
+			vertexShader: pathTracingVertexShader,
+			fragmentShader: pathTracingFragmentShader,
+			depthTest: false,
+			depthWrite: false
+		});
+
+		pathTracingMesh = new THREE.Mesh(pathTracingGeometry, pathTracingMaterial);
+		pathTracingScene.add(pathTracingMesh);
+
+		// the following keeps the large scene ShaderMaterial quad right in front 
+		//   of the camera at all times. This is necessary because without it, the scene 
+		//   quad will fall out of view and get clipped when the camera rotates past 180 degrees.
+		worldCamera.add(pathTracingMesh);
+
+	});
+
+} // end function createPathTracingMaterial()
+
+
+
+function buildNewLevel()
+{
+
+	for (let i = 0; i < numVertices; i++)
+	{
+		for (let j = 0; j < numVertices; j++)
+		{
+			index = i * numVertices + j;
+			vertexHeights[index] = 0;
+		}
+	}
+
+	// reset any tiles that had their triangle vertices flipped 'flipped' to correctly render certain connectors
+	for (let i = 0; i < numTiles; i++)
+	{
+		for (let j = 0; j < numTiles; j++)
+		{
+			tileIndex = i * numTiles + j;
+			vertexIndex = (i * numTiles * 18) + (j * 18);
+
+			if (tiles[tileIndex].code == 'flipped')
+			{
+				landscape_vpa[vertexIndex + 6] = landscape_vpa[vertexIndex + 15];
+				landscape_vpa[vertexIndex + 7] = landscape_vpa[vertexIndex + 16];
+				landscape_vpa[vertexIndex + 8] = landscape_vpa[vertexIndex + 17];
+				landscape_vpa[vertexIndex + 9] = landscape_vpa[vertexIndex + 3];
+				landscape_vpa[vertexIndex + 10] = landscape_vpa[vertexIndex + 4];
+				landscape_vpa[vertexIndex + 11] = landscape_vpa[vertexIndex + 5];
+			}
+		}
+	}
+
+	levelCounter++;
+	if (levelCounter % 4 == 0)
+	{
+		checkColor0.setRGB(0.001, 0.3, 0.001); // green // GREEN/BLUE combo
+		checkColor1.setRGB(0.001, 0.001, 0.3); // blue
+	}
+	else if (levelCounter % 4 == 1)
+	{
+		checkColor0.setRGB(0.35, 0.35, 0.1); // yellow // YELLOW/PURPLE combo
+		checkColor1.setRGB(0.05, 0.001, 0.25); // purple
+	}
+	else if (levelCounter % 4 == 2)
+	{
+		checkColor0.setRGB(0.25, 0.001, 0.01); // red // RED/BLUE combo
+		checkColor1.setRGB(0.001, 0.001, 0.15); // dark blue
+	}
+	else if (levelCounter % 4 == 3)
+	{
+		checkColor0.setRGB(0.35, 0.35, 0.1); // yellow // YELLOW/RED combo
+		checkColor1.setRGB(0.25, 0.001, 0.01); // red
+	}
+
+
+	// initialize object properties and arrays
+	code = '';
+	for (let i = 0; i < numTiles; i++)
+	{
+		if (code == 'checkColor0')
+			code = 'checkColor1';
+		else code = 'checkColor0';
+
+		for (let j = 0; j < numTiles; j++)
+		{
+			tileIndex = i * numTiles + j;
+			vertexIndex = (i * numTiles * 18) + (j * 18);
+			if (code == 'checkColor0')
+			{
+				// 1st triangle of square tile
+				landscape_vca[vertexIndex + 0] = checkColor0.r; landscape_vca[vertexIndex + 1] = checkColor0.g; landscape_vca[vertexIndex + 2] = checkColor0.b;
+				landscape_vca[vertexIndex + 3] = checkColor0.r; landscape_vca[vertexIndex + 4] = checkColor0.g; landscape_vca[vertexIndex + 5] = checkColor0.b;
+				landscape_vca[vertexIndex + 6] = checkColor0.r; landscape_vca[vertexIndex + 7] = checkColor0.g; landscape_vca[vertexIndex + 8] = checkColor0.b;
+				// 2nd triangle of square tile
+				landscape_vca[vertexIndex + 9] = checkColor0.r; landscape_vca[vertexIndex + 10] = checkColor0.g; landscape_vca[vertexIndex + 11] = checkColor0.b;
+				landscape_vca[vertexIndex + 12] = checkColor0.r; landscape_vca[vertexIndex + 13] = checkColor0.g; landscape_vca[vertexIndex + 14] = checkColor0.b;
+				landscape_vca[vertexIndex + 15] = checkColor0.r; landscape_vca[vertexIndex + 16] = checkColor0.g; landscape_vca[vertexIndex + 17] = checkColor0.b;
+			}
+			else
+			{
+				// 1st triangle of square tile
+				landscape_vca[vertexIndex + 0] = checkColor1.r; landscape_vca[vertexIndex + 1] = checkColor1.g; landscape_vca[vertexIndex + 2] = checkColor1.b;
+				landscape_vca[vertexIndex + 3] = checkColor1.r; landscape_vca[vertexIndex + 4] = checkColor1.g; landscape_vca[vertexIndex + 5] = checkColor1.b;
+				landscape_vca[vertexIndex + 6] = checkColor1.r; landscape_vca[vertexIndex + 7] = checkColor1.g; landscape_vca[vertexIndex + 8] = checkColor1.b;
+				// 2nd triangle of square tile
+				landscape_vca[vertexIndex + 9] = checkColor1.r; landscape_vca[vertexIndex + 10] = checkColor1.g; landscape_vca[vertexIndex + 11] = checkColor1.b;
+				landscape_vca[vertexIndex + 12] = checkColor1.r; landscape_vca[vertexIndex + 13] = checkColor1.g; landscape_vca[vertexIndex + 14] = checkColor1.b;
+				landscape_vca[vertexIndex + 15] = checkColor1.r; landscape_vca[vertexIndex + 16] = checkColor1.g; landscape_vca[vertexIndex + 17] = checkColor1.b;
+			}
+
+			// initialize geometry height values
+			// 1st triangle
+			// top left corner
+			landscape_vpa[vertexIndex + 1] = 0; // + 1 = the Y component
+			// bottom left corner
+			landscape_vpa[vertexIndex + 4] = 0; // + 4 = the Y component
+			// top right corner
+			landscape_vpa[vertexIndex + 7] = 0; // + 7 = the Y component
+			// 2nd tringle
+			// bottom left corner
+			landscape_vpa[vertexIndex + 10] = 0;
+			// bottom right corner
+			landscape_vpa[vertexIndex + 13] = 0;
+			// top right corner
+			landscape_vpa[vertexIndex + 16] = 0;
+
+			tiles[tileIndex].level = 0;
+			tiles[tileIndex].code = code;
+
+			if (code == 'checkColor0')
+				code = 'checkColor1';
+			else code = 'checkColor0';
+		}
+	}
+
+
+	i_offset = Math.round(Math.random() * numVertices);
+	j_offset = Math.round(Math.random() * numVertices);
+	frequency = 0.02;
+	amplitude = 2;
+	for (let i = 0; i < numVertices; i++)
+	{
+		for (let j = 0; j < numVertices; j++)
+		{
+			raiseAmount = simplex.noise((i + i_offset) * frequency, (j + j_offset) * frequency) * amplitude;
+			index = i * numVertices + j;
+			vertexHeights[index] += raiseAmount;
+		}
+	}
+	i_offset = Math.round(Math.random() * numVertices);
+	j_offset = Math.round(Math.random() * numVertices);
+	frequency += 0.02;
+	//amplitude -= 0.5;
+	for (let i = 0; i < numVertices; i++)
+	{
+		for (let j = 0; j < numVertices; j++)
+		{
+			raiseAmount = simplex.noise((i + i_offset) * frequency, (j + j_offset) * frequency) * amplitude;
+			index = i * numVertices + j;
+			vertexHeights[index] += raiseAmount;
+		}
+	}
+	i_offset = Math.round(Math.random() * numVertices);
+	j_offset = Math.round(Math.random() * numVertices);
+	frequency += 0.02;
+	//amplitude -= 0.5;
+	for (let i = 0; i < numVertices; i++)
+	{
+		for (let j = 0; j < numVertices; j++)
+		{
+			raiseAmount = simplex.noise((i + i_offset) * frequency, (j + j_offset) * frequency) * amplitude;
+			index = i * numVertices + j;
+			vertexHeights[index] += raiseAmount;
+		}
+	}
+	i_offset = Math.round(Math.random() * numVertices);
+	j_offset = Math.round(Math.random() * numVertices);
+	frequency += 0.02;
+	//amplitude -= 0.5;
+	for (let i = 0; i < numVertices; i++)
+	{
+		for (let j = 0; j < numVertices; j++)
+		{
+			raiseAmount = simplex.noise((i + i_offset) * frequency, (j + j_offset) * frequency) * amplitude;
+			index = i * numVertices + j;
+			vertexHeights[index] += raiseAmount;
+			vertexHeights[index] = Math.floor(vertexHeights[index]) * 10;
+		}
+	}
+
+
+	for (let i = 0; i < numTiles; i++)
+	{
+		for (let j = 0; j < numTiles; j++)
+		{
+			index = i * numVertices + j;
+			nextRowIndex = (i + 1) * numVertices + j;
+			vertexIndex = (i * numTiles * 18) + (j * 18);
+
+			landscape_vpa[vertexIndex + 1] = vertexHeights[index];// top left corner
+
+			landscape_vpa[vertexIndex + 4] = vertexHeights[nextRowIndex];// bottom left corner
+
+			landscape_vpa[vertexIndex + 7] = vertexHeights[index + 1];// top right corner
+
+			landscape_vpa[vertexIndex + 10] = vertexHeights[nextRowIndex];// bottom left corner
+
+			landscape_vpa[vertexIndex + 13] = vertexHeights[nextRowIndex + 1];// bottom right corner
+
+			landscape_vpa[vertexIndex + 16] = vertexHeights[index + 1];// top right corner
+
+		} // for (let j = 0; j < numTiles; j++)
+	} // end for (let i = 0; i < numTiles; i++)
+
+
+	// make connecting panels a white color
+	for (let i = 0; i < numTiles; i++)
+	{
+		for (let j = 0; j < numTiles; j++)
+		{
+			tileIndex = i * numTiles + j;
+			index = i * numVertices + j;
+			nextRowIndex = (i + 1) * numVertices + j;
+			vertexIndex = (i * numTiles * 18) + (j * 18);
+
+			if (vertexHeights[index] != vertexHeights[index + 1] ||
+				vertexHeights[index] != vertexHeights[nextRowIndex] ||
+				vertexHeights[index] != vertexHeights[nextRowIndex + 1] ||
+				vertexHeights[nextRowIndex + 1] != vertexHeights[index + 1] ||
+				vertexHeights[nextRowIndex + 1] != vertexHeights[nextRowIndex])
+			{
+				for (let k = 0; k < 18; k++)
+					landscape_vca[vertexIndex + k] = 1.0;
+				tiles[tileIndex].code = 'connector';
+
+				// check if some of the 2 triangles' vertices need to be swapped in order to make a concave connector
+				if ((vertexHeights[index] < vertexHeights[index + 1] &&
+					vertexHeights[index] < vertexHeights[nextRowIndex] &&
+					vertexHeights[index] < vertexHeights[nextRowIndex + 1]) ||
+					(vertexHeights[index] > vertexHeights[index + 1] &&
+						vertexHeights[index] > vertexHeights[nextRowIndex] &&
+						vertexHeights[index] > vertexHeights[nextRowIndex + 1]))
+				{
+					landscape_vpa[vertexIndex + 6] = landscape_vpa[vertexIndex + 12];
+					landscape_vpa[vertexIndex + 7] = landscape_vpa[vertexIndex + 13];
+					landscape_vpa[vertexIndex + 8] = landscape_vpa[vertexIndex + 14];
+					landscape_vpa[vertexIndex + 9] = landscape_vpa[vertexIndex + 0];
+					landscape_vpa[vertexIndex + 10] = landscape_vpa[vertexIndex + 1];
+					landscape_vpa[vertexIndex + 11] = landscape_vpa[vertexIndex + 2];
+
+					tiles[tileIndex].code = 'flipped';
+				}
+
+				if ((vertexHeights[nextRowIndex + 1] < vertexHeights[index] &&
+					vertexHeights[nextRowIndex + 1] < vertexHeights[index + 1] &&
+					vertexHeights[nextRowIndex + 1] < vertexHeights[nextRowIndex]) ||
+					(vertexHeights[nextRowIndex + 1] > vertexHeights[index] &&
+						vertexHeights[nextRowIndex + 1] > vertexHeights[index + 1] &&
+						vertexHeights[nextRowIndex + 1] > vertexHeights[nextRowIndex]))
+				{
+					landscape_vpa[vertexIndex + 6] = landscape_vpa[vertexIndex + 12];
+					landscape_vpa[vertexIndex + 7] = landscape_vpa[vertexIndex + 13];
+					landscape_vpa[vertexIndex + 8] = landscape_vpa[vertexIndex + 14];
+					landscape_vpa[vertexIndex + 9] = landscape_vpa[vertexIndex + 0];
+					landscape_vpa[vertexIndex + 10] = landscape_vpa[vertexIndex + 1];
+					landscape_vpa[vertexIndex + 11] = landscape_vpa[vertexIndex + 2];
+
+					tiles[tileIndex].code = 'flipped';
+				}
+			}
+
+		} // for (let j = 0; j < numTiles; j++)
+	} // end for (let i = 0; i < numTiles; i++)
+
+
+
+	// LANDSCAPE
+	//planeGeometry.computeFaceNormals();
+	planeMesh.geometry.computeVertexNormals();
+	planeMesh.geometry.attributes.position.needsUpdate = true;
+	planeMesh.geometry.attributes.normal.needsUpdate = true;
+	planeMesh.geometry.attributes.color.needsUpdate = true;
+
+
+	for (let i = 0; i < landscape_total_number_of_triangles; i++) 
+	{
+
+		bounding_box_min.set(Infinity, Infinity, Infinity);
+		bounding_box_max.set(-Infinity, -Infinity, -Infinity);
+
+		iX9 = i * 9;
+		// record vertex positions
+		vp0.set(landscape_vpa[iX9 + 0], landscape_vpa[iX9 + 1], landscape_vpa[iX9 + 2]);
+		vp1.set(landscape_vpa[iX9 + 3], landscape_vpa[iX9 + 4], landscape_vpa[iX9 + 5]);
+		vp2.set(landscape_vpa[iX9 + 6], landscape_vpa[iX9 + 7], landscape_vpa[iX9 + 8]);
+
+		// record vertex colors
+		vc0.set(landscape_vca[iX9 + 0], landscape_vca[iX9 + 1], landscape_vca[iX9 + 2]);
+		vc1.set(landscape_vca[iX9 + 3], landscape_vca[iX9 + 4], landscape_vca[iX9 + 5]);
+		vc2.set(landscape_vca[iX9 + 6], landscape_vca[iX9 + 7], landscape_vca[iX9 + 8]);
+
+		// record vertex normals
+		vn0.set(landscape_vna[iX9 + 0], landscape_vna[iX9 + 1], landscape_vna[iX9 + 2]);
+		vn1.set(landscape_vna[iX9 + 3], landscape_vna[iX9 + 4], landscape_vna[iX9 + 5]);
+		vn2.set(landscape_vna[iX9 + 6], landscape_vna[iX9 + 7], landscape_vna[iX9 + 8]);
+
+		iX32 = i * 32;
+		//slot 0
+		landscape_triangle_array[iX32 + 0] = vp0.x; // r or x
+		landscape_triangle_array[iX32 + 1] = vp0.y; // g or y 
+		landscape_triangle_array[iX32 + 2] = vp0.z; // b or z
+		landscape_triangle_array[iX32 + 3] = vp1.x; // a or w
+
+		//slot 1
+		landscape_triangle_array[iX32 + 4] = vp1.y; // r or x
+		landscape_triangle_array[iX32 + 5] = vp1.z; // g or y
+		landscape_triangle_array[iX32 + 6] = vp2.x; // b or z
+		landscape_triangle_array[iX32 + 7] = vp2.y; // a or w
+
+		//slot 2
+		landscape_triangle_array[iX32 + 8] = vp2.z; // r or x
+		landscape_triangle_array[iX32 + 9] = vc0.x; // g or y
+		landscape_triangle_array[iX32 + 10] = vc0.y; // b or z
+		landscape_triangle_array[iX32 + 11] = vc0.z; // a or w
+
+		//slot 3
+		landscape_triangle_array[iX32 + 12] = vc1.x; // r or x
+		landscape_triangle_array[iX32 + 13] = vc1.y; // g or y
+		landscape_triangle_array[iX32 + 14] = vc1.z; // b or z
+		landscape_triangle_array[iX32 + 15] = vc2.x; // a or w
+
+		//slot 4
+		landscape_triangle_array[iX32 + 16] = vc2.y; // r or x
+		landscape_triangle_array[iX32 + 17] = vc2.z; // g or y
+		landscape_triangle_array[iX32 + 18] = vn0.x; // b or z
+		landscape_triangle_array[iX32 + 19] = vn0.y; // a or w
+
+		//slot 5
+		landscape_triangle_array[iX32 + 20] = vn0.z; // r or x
+		landscape_triangle_array[iX32 + 21] = vn1.x; // g or y
+		landscape_triangle_array[iX32 + 22] = vn1.y; // b or z
+		landscape_triangle_array[iX32 + 23] = vn1.z; // a or w
+
+		//slot 6
+		landscape_triangle_array[iX32 + 24] = vn2.x; // r or x 
+		landscape_triangle_array[iX32 + 25] = vn2.y; // g or y
+		landscape_triangle_array[iX32 + 26] = vn2.z; // b or z
+		landscape_triangle_array[iX32 + 27] = 0; // a or w
+		/*
+		//slot 7
+		landscape_triangle_array[iX32 + 28] = 0; // r or x
+		landscape_triangle_array[iX32 + 29] = 0; // g or y
+		landscape_triangle_array[iX32 + 30] = 0; // b or z
+		landscape_triangle_array[iX32 + 31] = 0; // a or w */
+
+		bounding_box_min.min(vp0);
+		bounding_box_max.max(vp0);
+		bounding_box_min.min(vp1);
+		bounding_box_max.max(vp1);
+		bounding_box_min.min(vp2);
+		bounding_box_max.max(vp2);
+
+		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
+			(bounding_box_min.y + bounding_box_max.y) * 0.5,
+			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+
+		landscape_aabb_array[iX9 + 0] = bounding_box_min.x;
+		landscape_aabb_array[iX9 + 1] = bounding_box_min.y;
+		landscape_aabb_array[iX9 + 2] = bounding_box_min.z;
+		landscape_aabb_array[iX9 + 3] = bounding_box_max.x;
+		landscape_aabb_array[iX9 + 4] = bounding_box_max.y;
+		landscape_aabb_array[iX9 + 5] = bounding_box_max.z;
+		landscape_aabb_array[iX9 + 6] = bounding_box_centroid.x;
+		landscape_aabb_array[iX9 + 7] = bounding_box_centroid.y;
+		landscape_aabb_array[iX9 + 8] = bounding_box_centroid.z;
+
+		landscape_totalWork[i] = i;
+	} // end for (let i = 0; i < landscape_total_number_of_triangles; i++)
+
+
+	console.log("landscape_triangle count:" + landscape_totalWork.length);
+	// Build the BVH acceleration structure, which places a bounding box ('root' of the tree) around all of the 
+	// triangles of the entire mesh, then subdivides each box into 2 smaller boxes.  It continues until it reaches 1 triangle,
+	// which it then designates as a 'leaf'
+	BVH_Build_Iterative(landscape_totalWork, landscape_aabb_array);
+
+
+	landscape_triangleDataTexture.needsUpdate = true;
+	landscape_aabbDataTexture.needsUpdate = true;
+
+
 	// populate game objects: pedestal, Sentinel, sentries (in later levels), and trees
 	populateLevel();
 	
 } // end function buildNewLevel()
+
 
 
 
@@ -1953,6 +1959,7 @@ function populateLevel()
 	}
 
 } // end function populateLevel()
+
 
 
 // called automatically from within the animate() function
