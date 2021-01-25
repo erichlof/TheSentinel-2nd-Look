@@ -445,6 +445,7 @@ void SceneIntersect( Ray r )
 			}
 
 			intersec.normal = normalize(intersec.normal);
+
 		} // end if (intersec.color == vec3(1.0))
 
 	} // end if (triangleLookupNeeded)
@@ -553,7 +554,7 @@ vec3 getSkyColor(in vec3 rayDirection)
 	vec3 bottomColor = vec3(0);
 	vec3 skyColor = mix(bottomColor, topColor, clamp(pow((rayDirection.y + 1.0), 5.0), 0.0, 1.0) );
 	float sun = max(0.0, dot(rayDirection, uSunDirection));
-	return skyColor + (pow(sun, 180.0) * vec3(0.2,0.1,0.0)) + (pow(sun, 2000.0) * vec3(1,1,0)) + (pow(sun, 10000.0) * vec3(5,3,1));
+	return skyColor + (pow(sun, 180.0) * vec3(0.2,0.1,0.0)) + (pow(sun, 2000.0) * vec3(1,1,0)) + (pow(sun, 10000.0) * vec3(3,2,1));
 }
 
 //---------------------------------------------------------------------------
@@ -711,8 +712,6 @@ vec3 CalculateRadiance(Ray r)
 				
 			
 			bounceIsSpecular = false;
-
-			//mask *= (intersec.color == vec3(1.0)) ? vec3(0.7) : vec3(0);
 			
 			r = Ray(x, randomDirectionInSpecularLobe(uSunDirection, 0.01));
 			r.origin += nl * uEPS_intersect;
