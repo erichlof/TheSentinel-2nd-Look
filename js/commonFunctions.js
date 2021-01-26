@@ -372,7 +372,7 @@ function initTHREEjs() {
                 uFrameCounter: { type: "f", value: 1.0 },
                 uULen: { type: "f", value: 1.0 },
                 uVLen: { type: "f", value: 1.0 },
-                uApertureSize: { type: "f", value: 0.0 },
+                uApertureSize: { type: "f", value: apertureSize },
                 uFocusDistance: { type: "f", value: focusDistance },
                 uSunAngularDiameterCos: { type: "f", value: sunAngularDiameterCos },
 
