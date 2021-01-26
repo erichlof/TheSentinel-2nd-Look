@@ -9,7 +9,7 @@ uniform sampler2DArray tModels_triangleDataTexture2DArray;
 uniform sampler2DArray tModels_aabbDataTexture2DArray;
 uniform sampler2D tLandscape_TriangleTexture;
 uniform sampler2D tLandscape_AABBTexture;
-uniform mat4 uObjInvMatrices[30];
+uniform mat4 uObjInvMatrices[40];
 uniform vec4 uTopLevelAABBTree[200];
 uniform vec3 uSunDirection;
 uniform vec3 uViewRayTargetPosition;
