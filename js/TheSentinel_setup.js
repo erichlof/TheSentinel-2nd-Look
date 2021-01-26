@@ -33,7 +33,7 @@ let vertexHeights = new Float32Array(numVertices * numVertices);
 let levelCounter = -1;
 let upVector = new THREE.Vector3(0, 1, 0);
 let modelScale = 10.0;
-let MAX_N_TREES = 30;
+let MAX_N_TREES = 40;
 let materialNumber = 0;
 let buildnodesLength = 0;
 let objInvMatrices = [];
@@ -70,7 +70,7 @@ let PEDESTAL_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * PEDESTAL_MODEL_ID);
 let SENTINEL_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * SENTINEL_MODEL_ID);
 let MEANIE_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * MEANIE_MODEL_ID);
 
-let treeCount = 0;
+let gameObjectCount = 0;
 let tree_modelMesh;
 let tree_modelMaterialList = [];
 let tree_triangleMaterialMarkers = [];
@@ -490,7 +490,8 @@ function initSceneData()
 		{
 			tiles.push({
 				level: 0,
-				code: ''
+				code: '',
+				occupied: ''
 			});
 		}
 	}
@@ -1540,7 +1541,7 @@ function buildNewLevel()
 			// top right corner
 			landscape_vpa[vertexIndex + 16] = 0;
 
-			tiles[tileIndex].level = 0;
+			tiles[tileIndex].level = -Infinity;
 			tiles[tileIndex].code = code;
 
 			if (code == 'checkColor0')
@@ -1688,7 +1689,19 @@ function buildNewLevel()
 		} // for (let j = 0; j < numTiles; j++)
 	} // end for (let i = 0; i < numTiles; i++)
 
-
+	// record height levels for all playable checkerboard tiles
+	for (let i = 0; i < numTiles; i++)
+	{
+		for (let j = 0; j < numTiles; j++)
+		{
+			tileIndex = i * numTiles + j;
+			index = i * numVertices + j;
+			if (tiles[tileIndex].code == 'checkColor0' || tiles[tileIndex].code == 'checkColor1')
+			{
+				tiles[tileIndex].level = vertexHeights[index];
+			}
+		}
+	}
 
 	// LANDSCAPE
 	//planeGeometry.computeFaceNormals();
@@ -1815,54 +1828,87 @@ function buildNewLevel()
 
 function populateLevel()
 {
-	// populate trees
-	treeCount = 0;
+	gameObjectCount = 0;
 	for (let i = 0; i < numTiles; i++)
 	{
 		for (let j = 0; j < numTiles; j++)
 		{
 			tileIndex = i * numTiles + j;
+			tiles[tileIndex].occupied = '';
 			if (tiles[tileIndex].code == 'checkColor0' || tiles[tileIndex].code == 'checkColor1')
 			{
 				if (Math.random() < 0.05)
 				{
 					vertexIndex = (i * numTiles * 18) + (j * 18);
-					if (treeCount < MAX_N_TREES)
+					if (gameObjectCount < MAX_N_TREES)
 					{
-						game_Objects[treeCount].tag = "";
-						game_Objects[treeCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
-							landscape_vpa[vertexIndex + 1] + 9,
-							landscape_vpa[vertexIndex + 2] + 5);
+						current_model_id = Math.floor(Math.random() * 7);
+						if (current_model_id == TREE_MODEL_ID)
+						{
+							game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
+							tiles[tileIndex].occupied = 'tree';
+						}	
+						else if (current_model_id == BOULDER_MODEL_ID)
+						{
+							game_Objects[gameObjectCount].tag = "BOULDER_MODEL_ID";
+							tiles[tileIndex].occupied = 'boulder';
+						}
+						else if (current_model_id == ROBOT_MODEL_ID)
+						{
+							game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
+							tiles[tileIndex].occupied = 'robot';
+						}	
+						else if (current_model_id == SENTRY_MODEL_ID)
+						{
+							game_Objects[gameObjectCount].tag = "SENTRY_MODEL_ID";
+							tiles[tileIndex].occupied = 'sentry';
+						}	
+						else if (current_model_id == PEDESTAL_MODEL_ID)
+						{
+							game_Objects[gameObjectCount].tag = "PEDESTAL_MODEL_ID";
+							tiles[tileIndex].occupied = 'pedestal';
+						}	
+						else if (current_model_id == SENTINEL_MODEL_ID)
+						{
+							game_Objects[gameObjectCount].tag = "SENTINEL_MODEL_ID";
+							tiles[tileIndex].occupied = 'sentinel';
+						}
+						else if (current_model_id == MEANIE_MODEL_ID)
+						{
+							game_Objects[gameObjectCount].tag = "MEANIE_MODEL_ID";
+							tiles[tileIndex].occupied = 'meanie';
+						}
+							
+						game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+						landscape_vpa[vertexIndex + 1] + 9,
+						landscape_vpa[vertexIndex + 2] + 5);
 
-						treeCount++;
+						gameObjectCount++;
 					}
-					else treeCount = MAX_N_TREES;
+					else gameObjectCount = MAX_N_TREES;
 				}
 			}
 		} // end for (let j = 0; j < numTiles; j++)
 	} // end for (let i = 0; i < numTiles; i++)
 
 
-	topLevel_total_number_of_objects = treeCount;
+	topLevel_total_number_of_objects = gameObjectCount;
 	topLevel_totalWork = new Uint32Array(topLevel_total_number_of_objects);
 
 	for (let i = 0; i < topLevel_total_number_of_objects; i++)
 	{
-
-		current_model_id = Math.floor(Math.random() * 7);
-
-		if (current_model_id == TREE_MODEL_ID)
+		if (game_Objects[i].tag == "TREE_MODEL_ID")
 		{
-			game_Objects[i].tag = "TREE_MODEL_ID";
+			current_model_id = TREE_MODEL_ID;
 			boundingSphereRadius = tree_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
 		}
-		else if (current_model_id == BOULDER_MODEL_ID)
+		else if (game_Objects[i].tag == "BOULDER_MODEL_ID")
 		{
-			game_Objects[i].tag = "BOULDER_MODEL_ID";
+			current_model_id = BOULDER_MODEL_ID;
 			game_Objects[i].position.y -= 6.5;
 			boundingSphereRadius = boulder_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
@@ -1870,9 +1916,9 @@ function populateLevel()
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
 		}
-		else if (current_model_id == ROBOT_MODEL_ID)
+		else if (game_Objects[i].tag == "ROBOT_MODEL_ID")
 		{
-			game_Objects[i].tag = "ROBOT_MODEL_ID";
+			current_model_id = ROBOT_MODEL_ID;
 			game_Objects[i].position.y -= 4.4;
 			boundingSphereRadius = robot_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
@@ -1880,9 +1926,9 @@ function populateLevel()
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
 		}
-		else if (current_model_id == SENTRY_MODEL_ID)
+		else if (game_Objects[i].tag == "SENTRY_MODEL_ID")
 		{
-			game_Objects[i].tag = "SENTRY_MODEL_ID";
+			current_model_id = SENTRY_MODEL_ID;
 			game_Objects[i].position.y -= 4.4;
 			boundingSphereRadius = sentry_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
@@ -1890,9 +1936,9 @@ function populateLevel()
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
 		}
-		else if (current_model_id == PEDESTAL_MODEL_ID)
+		else if (game_Objects[i].tag == "PEDESTAL_MODEL_ID")
 		{
-			game_Objects[i].tag = "PEDESTAL_MODEL_ID";
+			current_model_id = PEDESTAL_MODEL_ID;
 			game_Objects[i].position.y -= 4.1;
 			boundingSphereRadius = pedestal_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
@@ -1900,9 +1946,9 @@ function populateLevel()
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
 		}
-		else if (current_model_id == SENTINEL_MODEL_ID)
+		else if (game_Objects[i].tag == "SENTINEL_MODEL_ID")
 		{
-			game_Objects[i].tag = "SENTINEL_MODEL_ID";
+			current_model_id = SENTINEL_MODEL_ID;
 			game_Objects[i].position.y -= 3.3;
 			boundingSphereRadius = sentinel_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
@@ -1910,9 +1956,9 @@ function populateLevel()
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
 		}
-		else if (current_model_id == MEANIE_MODEL_ID)
+		else if (game_Objects[i].tag == "MEANIE_MODEL_ID")
 		{
-			game_Objects[i].tag = "MEANIE_MODEL_ID";
+			current_model_id = MEANIE_MODEL_ID;
 			game_Objects[i].position.y -= 4.4;
 			boundingSphereRadius = meanie_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
@@ -2051,7 +2097,8 @@ function updateVariablesAndUniforms()
 		}
 		else blinkAngle = 0;
 		
-		cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code + "<br>";
+		cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code + " | level: " + tiles[raycastIndex].level.toFixed(0) + 
+			" | occupied: " + tiles[raycastIndex].occupied + "<br>";
 		viewRayTargetPosition.copy(intersectArray[0].point);
 		viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
 		focusDistance = intersectArray[0].distance;
