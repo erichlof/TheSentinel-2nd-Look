@@ -47,7 +47,9 @@ THREEx.KeyboardState.ALIAS	= {
 	'equals'	: 187,
 	'comma'		: 188,
 	'period'	: 190,
-	'escape'	: 27
+	'escape'	: 27,
+	'enter'		: 13,
+	'return'	: 13
 };
 
 /**
@@ -124,5 +126,3 @@ THREEx.KeyboardState.prototype.eventMatches = function(event, keyDesc) {
 	}
 	return true;
 };
-
-
