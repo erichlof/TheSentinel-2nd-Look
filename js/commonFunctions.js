@@ -38,10 +38,10 @@ let cameraRecentlyMoving = false;
 let isPaused = true;
 let oldYawRotation, oldPitchRotation;
 let mobileJoystickControls = null;
-let oldDeltaX = 0,
-        oldDeltaY = 0;
-let newDeltaX = 0,
-        newDeltaY = 0;
+let oldDeltaX = 0;
+let oldDeltaY = 0;
+let newDeltaX = 0;
+let newDeltaY = 0;
 let mobileControlsMoveX = 0;
 let mobileControlsMoveY = 0;
 let oldPinchWidthX = 0;
@@ -81,25 +81,24 @@ let fileLoader = new THREE.FileLoader();
 
 
 
-function onMouseWheel(event) {
-
+function onMouseWheel(event)
+{
         //event.preventDefault();
         event.stopPropagation();
 
-        if (event.deltaY > 0) {
-
+        if (event.deltaY > 0)
+        {
                 increaseFOV = true;
-
-        } else if (event.deltaY < 0) {
-
+        } 
+        else if (event.deltaY < 0)
+        {
                 decreaseFOV = true;
-
         }
-
 }
 
 
-function onWindowResize(event) {
+function onWindowResize(event)
+{
 
         windowIsBeingResized = true;
 
@@ -132,8 +131,8 @@ function onWindowResize(event) {
         pathTracingUniforms.uVLen.value = Math.tan(fovScale);
         pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
 
-        if (!mouseControl) {
-
+        if (!mouseControl)
+        {
                 button1Element.style.display = "";
                 button2Element.style.display = "";
                 button3Element.style.display = "";
@@ -141,8 +140,8 @@ function onWindowResize(event) {
                 button5Element.style.display = "";
                 button6Element.style.display = "";
                 // check if mobile device is in portrait or landscape mode and position buttons accordingly
-                if (SCREEN_WIDTH < SCREEN_HEIGHT) {
-
+                if (SCREEN_WIDTH < SCREEN_HEIGHT)
+                {
                         button1Element.style.right = 36 + "%";
                         button2Element.style.right = 2 + "%";
                         button3Element.style.right = 16 + "%";
@@ -156,9 +155,9 @@ function onWindowResize(event) {
                         button4Element.style.bottom = 2 + "%";
                         button5Element.style.bottom = 25 + "%";
                         button6Element.style.bottom = 18 + "%";
-
-                } else {
-
+                } 
+                else
+                {
                         button1Element.style.right = 22 + "%";
                         button2Element.style.right = 3 + "%";
                         button3Element.style.right = 11 + "%";
@@ -172,20 +171,20 @@ function onWindowResize(event) {
                         button4Element.style.bottom = 4 + "%";
                         button5Element.style.bottom = 48 + "%";
                         button6Element.style.bottom = 34 + "%";
-
                 }
-
         } // end if ( !mouseControl ) {
 
 } // end function onWindowResize( event )
 
 
 
-function init() {
+function init()
+{
 
         window.addEventListener('resize', onWindowResize, false);
 
-        if ('ontouchstart' in window) {
+        if ('ontouchstart' in window)
+        {
                 mouseControl = false;
 
                 mobileJoystickControls = new MobileJoystickControls({
@@ -199,7 +198,8 @@ function init() {
         if (!mouseControl)
                 isPaused = false;
 
-        if (mouseControl) {
+        if (mouseControl)
+        {
 
                 window.addEventListener('wheel', onMouseWheel, false);
 
@@ -211,24 +211,23 @@ function init() {
                 window.addEventListener("click", function (event) {
                         event.preventDefault();
                 }, false);
+
                 window.addEventListener("dblclick", function (event) {
                         event.preventDefault();
                 }, false);
 
 
-                pointerlockChange = function (event) {
-
+                pointerlockChange = function (event)
+                {
                         if (document.pointerLockElement === document.body ||
-                                document.mozPointerLockElement === document.body || document.webkitPointerLockElement === document.body) {
-
+                                document.mozPointerLockElement === document.body || document.webkitPointerLockElement === document.body)
+                        {
                                 isPaused = false;
-
-                        } else {
-
-                                isPaused = true;
-
                         }
-
+                        else
+                        {
+                                isPaused = true;
+                        }
                 };
 
                 // Hook pointer lock state change events
@@ -242,18 +241,20 @@ function init() {
         // Fullscreen API
         document.addEventListener("click", function() {
         	
-        	if ( !document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement ) {
-        		if (document.documentElement.requestFullscreen) {
-        			document.documentElement.requestFullscreen();
-        			
-        		} else if (document.documentElement.mozRequestFullScreen) {
-        			document.documentElement.mozRequestFullScreen();
-        		
-        		} else if (document.documentElement.webkitRequestFullscreen) {
-        			document.documentElement.webkitRequestFullscreen();
-        		
-        		}
-        	}
+                if ( !document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement ) 
+                {
+                        if (document.documentElement.requestFullscreen) 
+                        {
+                                document.documentElement.requestFullscreen();	
+                        } 
+                        else if (document.documentElement.mozRequestFullScreen) 
+                        {
+                                document.documentElement.mozRequestFullScreen();
+                        } else if (document.documentElement.webkitRequestFullscreen) 
+                        {
+                                document.documentElement.webkitRequestFullscreen();
+                        }
+                }
         });
         */
 
@@ -263,10 +264,11 @@ function init() {
 
 
 
-function initTHREEjs() {
+function initTHREEjs()
+{
 
         canvas = document.createElement('canvas');
-        
+
         renderer = new THREE.WebGLRenderer({ canvas: canvas, context: canvas.getContext('webgl2') });
         //suggestion: set to false for production
         renderer.debug.checkShaderErrors = true;
@@ -290,7 +292,7 @@ function initTHREEjs() {
         stats.domElement.style.MozUserSelect = "none";
         container.appendChild(stats.domElement);
 
-        
+
         clock = new THREE.Clock();
 
         pathTracingScene = new THREE.Scene();
@@ -318,7 +320,7 @@ function initTHREEjs() {
 
         pathTracingScene.add(cameraControlsObject);
 
-        
+
         // setup render targets...
         pathTracingRenderTarget = new THREE.WebGLRenderTarget(context.drawingBufferWidth, context.drawingBufferHeight, {
                 minFilter: THREE.NearestFilter,
@@ -384,7 +386,7 @@ function initTHREEjs() {
 
         initPathTracingShaders();
 
-        
+
         // this full-screen quad mesh copies the image output of the pathtracing shader and feeds it back in to that shader as a 'previousTexture'
         screenCopyGeometry = new THREE.PlaneBufferGeometry(2, 2);
 
@@ -392,8 +394,8 @@ function initTHREEjs() {
                 tPathTracedImageTexture: { type: "t", value: null }
         };
 
-        fileLoader.load('shaders/ScreenCopy_Fragment.glsl', function (shaderText)
-        {
+        fileLoader.load('shaders/ScreenCopy_Fragment.glsl', function (shaderText) {
+                
                 screenCopyFragmentShader = shaderText;
 
                 screenCopyMaterial = new THREE.ShaderMaterial({
@@ -410,7 +412,7 @@ function initTHREEjs() {
                 screenCopyScene.add(screenCopyMesh);
         });
 
-        
+
         // this full-screen quad mesh takes the image output of the path tracing shader (which is a continuous blend of the previous frame and current frame),
         // and applies gamma correction (which brightens the entire image), and then displays the final accumulated rendering to the screen
         screenOutputGeometry = new THREE.PlaneBufferGeometry(2, 2);
@@ -420,8 +422,8 @@ function initTHREEjs() {
                 tPathTracedImageTexture: { type: "t", value: null }
         };
 
-        fileLoader.load('shaders/ScreenOutput_Fragment.glsl', function (shaderText)
-        {
+        fileLoader.load('shaders/ScreenOutput_Fragment.glsl', function (shaderText) {
+
                 screenOutputFragmentShader = shaderText;
 
                 screenOutputMaterial = new THREE.ShaderMaterial({
@@ -450,7 +452,8 @@ function initTHREEjs() {
 
 
 
-function animate() {
+function animate()
+{
 
         frameTime = clock.getDelta();
 
@@ -458,18 +461,20 @@ function animate() {
 
         // reset flags
         cameraIsMoving = false;
-        
-        if (windowIsBeingResized) {
+
+        if (windowIsBeingResized)
+        {
                 cameraIsMoving = true;
                 windowIsBeingResized = false;
         }
 
         // check user controls
-        if (mouseControl) {
+        if (mouseControl)
+        {
                 // movement detected
                 if (oldYawRotation != cameraControlsYawObject.rotation.y ||
-                        oldPitchRotation != cameraControlsPitchObject.rotation.x) {
-
+                        oldPitchRotation != cameraControlsPitchObject.rotation.x)
+                {
                         cameraIsMoving = true;
                 }
 
@@ -480,11 +485,13 @@ function animate() {
         } // end if (mouseControl)
 
         // if not playing on desktop, get input from the mobileJoystickControls
-        if (!mouseControl) {
+        if (!mouseControl)
+        {
 
                 newDeltaX = joystickDeltaX;
 
-                if (newDeltaX) {
+                if (newDeltaX)
+                {
                         cameraIsMoving = true;
                         mobileControlsMoveX = oldDeltaX - newDeltaX;
                         // mobileJoystick X movement (left and right) affects camera rotation around the Y axis	
@@ -493,7 +500,8 @@ function animate() {
 
                 newDeltaY = joystickDeltaY;
 
-                if (newDeltaY) {
+                if (newDeltaY)
+                {
                         cameraIsMoving = true;
                         mobileControlsMoveY = oldDeltaY - newDeltaY;
                         // mobileJoystick Y movement (up and down) affects camera rotation around the X axis	
@@ -513,22 +521,28 @@ function animate() {
                 pinchDeltaX = newPinchWidthX - oldPinchWidthX;
                 pinchDeltaY = newPinchWidthY - oldPinchWidthY;
 
-                if (Math.abs(pinchDeltaX) > Math.abs(pinchDeltaY)) {
-                        if (pinchDeltaX < -1) {
+                if (Math.abs(pinchDeltaX) > Math.abs(pinchDeltaY))
+                {
+                        if (pinchDeltaX < -1)
+                        {
                                 increaseFOV = true;
                                 dollyCameraOut = true;
                         }
-                        if (pinchDeltaX > 1) {
+                        if (pinchDeltaX > 1)
+                        {
                                 decreaseFOV = true;
                                 dollyCameraIn = true;
                         }
                 }
 
-                if (Math.abs(pinchDeltaY) >= Math.abs(pinchDeltaX)) {
-                        if (pinchDeltaY > 1) {
+                if (Math.abs(pinchDeltaY) >= Math.abs(pinchDeltaX))
+                {
+                        if (pinchDeltaY > 1)
+                        {
                                 increaseAperture = true;
                         }
-                        if (pinchDeltaY < -1) {
+                        if (pinchDeltaY < -1)
+                        {
                                 decreaseAperture = true;
                         }
                 }
@@ -552,57 +566,58 @@ function animate() {
         // rotating scene objects to match the camera's rotation
         worldCamera.getWorldQuaternion(cameraWorldQuaternion);
 
-        if (useGenericInput) {
-
+        if (useGenericInput)
+        {
                 // allow flying camera
-                if ((keyboard.pressed('W') || button3Pressed) && !(keyboard.pressed('S') || button4Pressed)) {
-
+                if ((keyboard.pressed('W') || button3Pressed) && !(keyboard.pressed('S') || button4Pressed))
+                {
                         cameraControlsObject.position.add(cameraDirectionVector.multiplyScalar(camFlightSpeed * frameTime));
                         cameraIsMoving = true;
                 }
-                if ((keyboard.pressed('S') || button4Pressed) && !(keyboard.pressed('W') || button3Pressed)) {
-
+                if ((keyboard.pressed('S') || button4Pressed) && !(keyboard.pressed('W') || button3Pressed))
+                {
                         cameraControlsObject.position.sub(cameraDirectionVector.multiplyScalar(camFlightSpeed * frameTime));
                         cameraIsMoving = true;
                 }
-                if ((keyboard.pressed('A') || button1Pressed) && !(keyboard.pressed('D') || button2Pressed)) {
-
+                if ((keyboard.pressed('A') || button1Pressed) && !(keyboard.pressed('D') || button2Pressed))
+                {
                         cameraControlsObject.position.sub(cameraRightVector.multiplyScalar(camFlightSpeed * frameTime));
                         cameraIsMoving = true;
                 }
-                if ((keyboard.pressed('D') || button2Pressed) && !(keyboard.pressed('A') || button1Pressed)) {
-
+                if ((keyboard.pressed('D') || button2Pressed) && !(keyboard.pressed('A') || button1Pressed))
+                {
                         cameraControlsObject.position.add(cameraRightVector.multiplyScalar(camFlightSpeed * frameTime));
                         cameraIsMoving = true;
                 }
-                if (keyboard.pressed('Q') && !keyboard.pressed('Z')) {
-
+                if (keyboard.pressed('Q') && !keyboard.pressed('Z'))
+                {
                         cameraControlsObject.position.add(cameraUpVector.multiplyScalar(camFlightSpeed * frameTime));
                         cameraIsMoving = true;
                 }
-                if (keyboard.pressed('Z') && !keyboard.pressed('Q')) {
-
+                if (keyboard.pressed('Z') && !keyboard.pressed('Q'))
+                {
                         cameraControlsObject.position.sub(cameraUpVector.multiplyScalar(camFlightSpeed * frameTime));
                         cameraIsMoving = true;
                 }
-                if ((keyboard.pressed('up') || button5Pressed) && !(keyboard.pressed('down') || button6Pressed)) {
-
+                if ((keyboard.pressed('up') || button5Pressed) && !(keyboard.pressed('down') || button6Pressed))
+                {
                         increaseFocusDist = true;
                 }
-                if ((keyboard.pressed('down') || button6Pressed) && !(keyboard.pressed('up') || button5Pressed)) {
-
+                if ((keyboard.pressed('down') || button6Pressed) && !(keyboard.pressed('up') || button5Pressed))
+                {
                         decreaseFocusDist = true;
                 }
-                if (keyboard.pressed('right') && !keyboard.pressed('left')) {
-
+                if (keyboard.pressed('right') && !keyboard.pressed('left'))
+                {
                         increaseAperture = true;
                 }
-                if (keyboard.pressed('left') && !keyboard.pressed('right')) {
-
+                if (keyboard.pressed('left') && !keyboard.pressed('right'))
+                {
                         decreaseAperture = true;
                 }
 
-                if (increaseFOV) {
+                if (increaseFOV)
+                {
                         worldCamera.fov++;
                         if (worldCamera.fov > 150)
                                 worldCamera.fov = 150;
@@ -613,7 +628,8 @@ function animate() {
                         cameraIsMoving = true;
                         increaseFOV = false;
                 }
-                if (decreaseFOV) {
+                if (decreaseFOV)
+                {
                         worldCamera.fov--;
                         if (worldCamera.fov < 1)
                                 worldCamera.fov = 1;
@@ -625,13 +641,15 @@ function animate() {
                         decreaseFOV = false;
                 }
 
-                if (increaseFocusDist) {
+                if (increaseFocusDist)
+                {
                         focusDistance += 1;
                         pathTracingUniforms.uFocusDistance.value = focusDistance;
                         cameraIsMoving = true;
                         increaseFocusDist = false;
                 }
-                if (decreaseFocusDist) {
+                if (decreaseFocusDist)
+                {
                         focusDistance -= 1;
                         if (focusDistance < 1)
                                 focusDistance = 1;
@@ -640,7 +658,8 @@ function animate() {
                         decreaseFocusDist = false;
                 }
 
-                if (increaseAperture) {
+                if (increaseAperture)
+                {
                         apertureSize += 0.1;
                         if (apertureSize > 100.0)
                                 apertureSize = 100.0;
@@ -648,7 +667,8 @@ function animate() {
                         cameraIsMoving = true;
                         increaseAperture = false;
                 }
-                if (decreaseAperture) {
+                if (decreaseAperture)
+                {
                         apertureSize -= 0.1;
                         if (apertureSize < 0.0)
                                 apertureSize = 0.0;
