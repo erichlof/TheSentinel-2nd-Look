@@ -26,7 +26,8 @@ let index = 0;
 let tileIndex = 0;
 let vertexIndex = 0;
 let nextRowIndex = 0;
-let highestLevel = -Infinity;
+let highestLevel = 0;
+let lowestLevel = 0;
 let canPressSpace = true;
 let canPressR = true;
 let simplex = new THREE.SimplexNoise();
@@ -183,6 +184,9 @@ let viewRayTargetPosition = new THREE.Vector3();
 let selectedTile = 0;
 let blinkAngle = 0.0;
 
+let canPressEnter = true;
+let playerRobotIndex = 0;
+
 
 
 function MaterialObject()
@@ -326,12 +330,8 @@ function initSceneData()
 
 	EPS_intersect = mouseControl ? 0.01 : 1.0; // less precision on mobile
 
-	// set camera's field of view
-	worldCamera.fov = 40;
-	apertureSize = 0.0;
-
 	// position and orient camera
-	cameraControlsObject.position.set(0, 100, 370);
+	cameraControlsObject.position.set(0, 140, 450);
 
 	// look slightly downward
 	cameraControlsPitchObject.rotation.x = -0.4;
@@ -1809,16 +1809,23 @@ function buildNewLevel()
 
 function populateLevel()
 {
-	numOfSentries = 2;
+	numOfSentries = 7;
 	MaxUnitsOfEnergy = 64;
-	// Starting Player Inventory: 10 units (3 robots and 1 tree), 
-	//    Sentinel: +3 units max if converted to trees, Sentries: +2 units max each (if any) 
-	MaxUnitsOfEnergy -= 13;
-	MaxUnitsOfEnergy -= (2 * numOfSentries);
+	// Starting Player Robot Energy Inventory: 10 units (3 robots and 1 tree)
+	// Sentinel: 4 units
+	// sentries(if any): 3 units each
+	// boulders(none at start of levels): 2 units each
+	// meanies(none at start of levels): 1 unit each (converted from a tree)
+	// trees: 1 unit each
+
+	// Starting Player Robot: +9 units max if converted to trees, Sentinel: +3 units max if converted to trees, Sentries: +2 units max each (if any)
+	MaxUnitsOfEnergy -= 12; // 9 + 3 reserved for extra tree objects if Starting Robot or Sentinel are converted to trees
+	MaxUnitsOfEnergy -= (2 * numOfSentries); // 2 * numOfSentries (if any) for extra tree objects if each sentry is converted to trees
 	gameObjectCount = 0;
 
-	highestLevel = -Infinity;
-	// record highest level
+	highestLevel = -Infinity; // initialize to lowest possible
+	lowestLevel = Infinity; // initialize to highest possible
+	// record highest and lowest levels
 	for (let i = 0; i < numTiles; i++)
 	{
 		for (let j = 0; j < numTiles; j++)
@@ -1828,6 +1835,8 @@ function populateLevel()
 
 			if (tiles[tileIndex].level > highestLevel)
 				highestLevel = tiles[tileIndex].level;
+			if (tiles[tileIndex].level != -Infinity && tiles[tileIndex].level < lowestLevel)
+				lowestLevel = tiles[tileIndex].level;
 		}
 	}
 
@@ -1893,36 +1902,69 @@ function populateLevel()
 			} // end for (let j = 0; j < numTiles; j++)
 		} // end for (let i = 0; i < numTiles; i++)
 	} //end while (gameObjectCount < numOfSentries + 2)
-	
 
 
+	// place the player's initial robot on the lowest level
 	for (let i = 0; i < numTiles; i++)
 	{
 		for (let j = 0; j < numTiles; j++)
 		{
 			tileIndex = i * numTiles + j;
-			
-			if (tiles[tileIndex].code == 'checkColor0' || tiles[tileIndex].code == 'checkColor1')
+			if (tiles[tileIndex].level == lowestLevel)
 			{
-				if (tiles[tileIndex].occupied == "" && Math.random() < 0.05)
-				{
-					vertexIndex = (i * numTiles * 18) + (j * 18);
-					if (gameObjectCount < MaxUnitsOfEnergy)
-					{
-						game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
-						tiles[tileIndex].occupied = 'tree';
-								
-						game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
-						landscape_vpa[vertexIndex + 1] + 9,
-						landscape_vpa[vertexIndex + 2] + 5);
+				vertexIndex = (i * numTiles * 18) + (j * 18);
+				game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
+				tiles[tileIndex].occupied = 'robot';
+				playerRobotIndex = gameObjectCount; // record player's robot Object3D array index
 
-						gameObjectCount++;
-					}
-					else gameObjectCount = MaxUnitsOfEnergy;
-				}
+				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+					landscape_vpa[vertexIndex + 1] + 9,
+					landscape_vpa[vertexIndex + 2] + 5);
+
+				gameObjectCount++;
+
+				i = j = numTiles; // exit both loops
 			}
 		} // end for (let j = 0; j < numTiles; j++)
 	} // end for (let i = 0; i < numTiles; i++)
+	
+
+	// finally fill up the remaining landscape's maxUnitsOfEnergy with trees (worth 1 energy unit each)
+	randomThreshold = 0;
+	while (gameObjectCount < MaxUnitsOfEnergy)
+	{
+		randomThreshold += 0.001;
+		for (let i = 0; i < numTiles; i++)
+		{
+			for (let j = 0; j < numTiles; j++)
+			{
+				tileIndex = i * numTiles + j;
+
+				if (tiles[tileIndex].code == 'checkColor0' || tiles[tileIndex].code == 'checkColor1')
+				{
+					if (tiles[tileIndex].occupied == "" && tiles[tileIndex].level < (highestLevel - 20) && Math.random() < randomThreshold)
+					{
+						vertexIndex = (i * numTiles * 18) + (j * 18);
+						if (gameObjectCount < MaxUnitsOfEnergy)
+						{
+							game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
+							tiles[tileIndex].occupied = 'tree';
+
+							game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+								landscape_vpa[vertexIndex + 1] + 9,
+								landscape_vpa[vertexIndex + 2] + 5);
+
+							gameObjectCount++;
+						}
+						else i = j = numTiles;
+						//else gameObjectCount = MaxUnitsOfEnergy;
+					}
+				}
+			} // end for (let j = 0; j < numTiles; j++)
+		} // end for (let i = 0; i < numTiles; i++)
+
+	} // end while (gameObjectCount < MaxUnitsOfEnergy)
+	
 
 
 	topLevel_total_number_of_objects = gameObjectCount;
@@ -2044,12 +2086,34 @@ function updateVariablesAndUniforms()
 	
 	if (keyboard.pressed('space') && canPressSpace)
 	{
+		useGenericInput = true;
+		
+		cameraControlsObject.position.set(0, 140, 450);
+		cameraControlsYawObject.rotation.set(0, 0, 0);
+		cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
+		apertureSize = 0.0;
+
 		buildNewLevel();
 		canPressSpace = false;
 	}
 	if (!keyboard.pressed('space'))
 	{
 		canPressSpace = true;
+	}
+
+	if (keyboard.pressed('enter') && canPressEnter)
+	{
+		useGenericInput = false;
+
+		cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
+		cameraControlsObject.position.y += 4;
+		apertureSize = 0.01;
+
+		canPressEnter = false;
+	}
+	if (!keyboard.pressed('enter'))
+	{
+		canPressEnter = true;
 	}
 
 
@@ -2065,6 +2129,63 @@ function updateVariablesAndUniforms()
 
 	if (apertureSize > 1.0)
 		apertureSize = 1.0;
+
+	
+	if (!useGenericInput) // if in game mode
+	{
+		if (increaseFOV)
+		{
+			worldCamera.fov++;
+			if (worldCamera.fov > 150)
+				worldCamera.fov = 150;
+			fovScale = worldCamera.fov * 0.5 * (Math.PI / 180.0);
+			pathTracingUniforms.uVLen.value = Math.tan(fovScale);
+			pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
+
+			cameraIsMoving = true;
+			increaseFOV = false;
+		}
+		if (decreaseFOV)
+		{
+			worldCamera.fov--;
+			if (worldCamera.fov < 1)
+				worldCamera.fov = 1;
+			fovScale = worldCamera.fov * 0.5 * (Math.PI / 180.0);
+			pathTracingUniforms.uVLen.value = Math.tan(fovScale);
+			pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
+
+			cameraIsMoving = true;
+			decreaseFOV = false;
+		}
+
+		if (keyboard.pressed('right') && !keyboard.pressed('left'))
+		{
+			increaseAperture = true;
+		}
+		if (keyboard.pressed('left') && !keyboard.pressed('right'))
+		{
+			decreaseAperture = true;
+		}
+		if (increaseAperture)
+		{
+			apertureSize += 0.01;
+			if (apertureSize > 100.0)
+				apertureSize = 100.0;
+			pathTracingUniforms.uApertureSize.value = apertureSize;
+			cameraIsMoving = true;
+			increaseAperture = false;
+		}
+		if (decreaseAperture)
+		{
+			apertureSize -= 0.01;
+			if (apertureSize < 0.0)
+				apertureSize = 0.0;
+			pathTracingUniforms.uApertureSize.value = apertureSize;
+			cameraIsMoving = true;
+			decreaseAperture = false;
+		}
+
+	} // end if (!useGenericInput) // if in game mode
 
 
 	// SPHERE LIGHT
@@ -2100,11 +2221,15 @@ function updateVariablesAndUniforms()
 		objInvMatrices[i].elements[15] = current_model_id;
 	}
 
-	// lock FOV to 40 degrees, similar to original game
-	worldCamera.fov = 40;
-	fovScale = worldCamera.fov * 0.5 * (Math.PI / 180.0);
-	pathTracingUniforms.uVLen.value = Math.tan(fovScale);
-	pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
+	// cap FOV to 30 degrees max, similar to original game's 'tense tight view' feeling
+	if (worldCamera.fov > 30)
+	{
+		worldCamera.fov = 30;
+		fovScale = worldCamera.fov * 0.5 * (Math.PI / 180.0);
+		pathTracingUniforms.uVLen.value = Math.tan(fovScale);
+		pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
+	}
+	
 
 	intersectArray.length = 0;
 	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
@@ -2143,7 +2268,7 @@ function updateVariablesAndUniforms()
 	pathTracingUniforms.uSelectedTile.value = selectedTile;
 	
 	// INFO
-	cameraInfoElement.innerHTML += "Aperture: " + apertureSize.toFixed(2) +
+	cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
 		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press R to randomize game objects";
 
 } // end function updateVariablesAndUniforms()
