@@ -26,6 +26,7 @@ let index = 0;
 let tileIndex = 0;
 let vertexIndex = 0;
 let nextRowIndex = 0;
+let highestLevel = -Infinity;
 let canPressSpace = true;
 let canPressR = true;
 let simplex = new THREE.SimplexNoise();
@@ -33,7 +34,7 @@ let vertexHeights = new Float32Array(numVertices * numVertices);
 let levelCounter = -1;
 let upVector = new THREE.Vector3(0, 1, 0);
 let modelScale = 10.0;
-let MAX_N_TREES = 40;
+let MaxUnitsOfEnergy = 64;
 let materialNumber = 0;
 let buildnodesLength = 0;
 let objInvMatrices = [];
@@ -71,10 +72,13 @@ let SENTINEL_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * SENTINEL_MODEL_ID);
 let MEANIE_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * MEANIE_MODEL_ID);
 
 let gameObjectCount = 0;
+let numOfSentries = 0;
+let game_Objects = [];
+let randomThreshold = 0;
+
 let tree_modelMesh;
 let tree_modelMaterialList = [];
 let tree_triangleMaterialMarkers = [];
-let game_Objects = []; // there can be a variable number of trees in the landscape
 let tree_total_number_of_triangles = 0;
 let tree_vpa;
 let tree_vca;
@@ -83,11 +87,9 @@ let tree_triangle_array; // needed for BVH creation
 let tree_aabb_array; // needed for BVH creation
 let tree_totalWork;
 
-let boulderCount = 0;
 let boulder_modelMesh;
 let boulder_modelMaterialList = [];
 let boulder_triangleMaterialMarkers = [];
-let boulder_Objects = []; // there can be a variable number of boulders placed by the player
 let boulder_total_number_of_triangles = 0;
 let boulder_vpa;
 let boulder_vca;
@@ -96,11 +98,9 @@ let boulder_triangle_array;
 let boulder_aabb_array;
 let boulder_totalWork;
 
-let robotCount = 0;
 let robot_modelMesh;
 let robot_modelMaterialList = [];
 let robot_triangleMaterialMarkers = [];
-let robot_Objects = []; // there can be a variable number of robots placed by the player
 let robot_total_number_of_triangles = 0;
 let robot_vpa;
 let robot_vca;
@@ -112,7 +112,6 @@ let robot_totalWork;
 let sentry_modelMesh;
 let sentry_modelMaterialList = [];
 let sentry_triangleMaterialMarkers = [];
-let sentry_Objects = []; // there can be a variable number of lower sentries in the landscape
 let sentry_total_number_of_triangles = 0;
 let sentry_vpa;
 let sentry_vca;
@@ -121,10 +120,20 @@ let sentry_triangle_array;
 let sentry_aabb_array;
 let sentry_totalWork;
 
+let meanie_modelMesh;
+let meanie_modelMaterialList = [];
+let meanie_triangleMaterialMarkers = [];
+let meanie_total_number_of_triangles = 0;
+let meanie_vpa;
+let meanie_vca;
+let meanie_vna;
+let meanie_triangle_array;
+let meanie_aabb_array;
+let meanie_totalWork;
+
 let pedestal_modelMesh;
 let pedestal_modelMaterialList = [];
 let pedestal_triangleMaterialMarkers = [];
-let pedestal_Object; // there can only be 1 pedestal for the top Sentinel each level
 let pedestal_total_number_of_triangles = 0;
 let pedestal_vpa;
 let pedestal_vca;
@@ -136,7 +145,6 @@ let pedestal_totalWork;
 let sentinel_modelMesh;
 let sentinel_modelMaterialList = [];
 let sentinel_triangleMaterialMarkers = [];
-let sentinel_Object; // there can only be 1 top Sentinel for each level
 let sentinel_total_number_of_triangles = 0;
 let sentinel_vpa;
 let sentinel_vca;
@@ -144,18 +152,6 @@ let sentinel_vna;
 let sentinel_triangle_array;
 let sentinel_aabb_array;
 let sentinel_totalWork;
-
-let meanie_modelMesh;
-let meanie_modelMaterialList = [];
-let meanie_triangleMaterialMarkers = [];
-let meanie_Object; // there can only be 1 meanie (placed by the top Sentinel if needed) for each level
-let meanie_total_number_of_triangles = 0;
-let meanie_vpa;
-let meanie_vca;
-let meanie_vna;
-let meanie_triangle_array;
-let meanie_aabb_array;
-let meanie_totalWork;
 
 let vp0 = new THREE.Vector3();
 let vp1 = new THREE.Vector3();
@@ -175,11 +171,9 @@ let topLevel_total_number_of_objects = 0;
 let topLevel_aabb_array;
 let topLevel_totalWork;
 let iX32 = 0;
-let iX16 = 0;
 let iX9 = 0;
 let iX8 = 0;
-let tX8 = 0;
-let tX2 = 0;
+let iX4 = 0;
 let modelsLoadedCount = 0;
 
 let raycaster = new THREE.Raycaster();
@@ -369,15 +363,15 @@ function initSceneData()
 	tree_vpa = new Float32Array(tree_modelMesh.geometry.attributes.position.array);
 	tree_vna = new Float32Array(tree_modelMesh.geometry.attributes.normal.array);
 
-	for (let t = 0; t < MAX_N_TREES; t++)
+	for (let i = 0; i < 64; i++) // 64 = max object inverse matrices
 	{
-		game_Objects[t] = new THREE.Object3D();
-		game_Objects[t].tag = "";
-		objInvMatrices[t] = new THREE.Matrix4();
+		game_Objects[i] = new THREE.Object3D();
+		game_Objects[i].tag = "";
+		objInvMatrices[i] = new THREE.Matrix4();
 	}
-	for (let t = 0; t < 200; t++)
+	for (let i = 0; i < 256; i++) // enough to hold ~ 64 nodes + 64 leaves * 2 (2 Vector4's for each node)
 	{
-		topLevelAABBTree[t] = new THREE.Vector4();
+		topLevelAABBTree[i] = new THREE.Vector4();
 	}
 
 	// BOULDER MODEL
@@ -390,10 +384,6 @@ function initSceneData()
 	boulder_vpa = new Float32Array(boulder_modelMesh.geometry.attributes.position.array);
 	boulder_vna = new Float32Array(boulder_modelMesh.geometry.attributes.normal.array);
 
-	for (let t = 0; t < MAX_N_TREES; t++)
-	{
-		boulder_Objects[t] = new THREE.Object3D();
-	}
 
 	// ROBOT MODEL
 	robot_total_number_of_triangles = robot_modelMesh.geometry.attributes.position.array.length / 9;
@@ -405,10 +395,6 @@ function initSceneData()
 	robot_vpa = new Float32Array(robot_modelMesh.geometry.attributes.position.array);
 	robot_vna = new Float32Array(robot_modelMesh.geometry.attributes.normal.array);
 
-	for (let t = 0; t < MAX_N_TREES; t++)
-	{
-		robot_Objects[t] = new THREE.Object3D();
-	}
 
 	// SENTRY MODEL
 	sentry_total_number_of_triangles = sentry_modelMesh.geometry.attributes.position.array.length / 9;
@@ -419,11 +405,6 @@ function initSceneData()
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
 	sentry_vpa = new Float32Array(sentry_modelMesh.geometry.attributes.position.array);
 	sentry_vna = new Float32Array(sentry_modelMesh.geometry.attributes.normal.array);
-
-	for (let t = 0; t < MAX_N_TREES; t++)
-	{
-		sentry_Objects[t] = new THREE.Object3D();
-	}
 
 
 	// PEDESTAL MODEL
@@ -1828,64 +1809,116 @@ function buildNewLevel()
 
 function populateLevel()
 {
+	numOfSentries = 2;
+	MaxUnitsOfEnergy = 64;
+	// Starting Player Inventory: 10 units (3 robots and 1 tree), 
+	//    Sentinel: +3 units max if converted to trees, Sentries: +2 units max each (if any) 
+	MaxUnitsOfEnergy -= 13;
+	MaxUnitsOfEnergy -= (2 * numOfSentries);
 	gameObjectCount = 0;
+
+	highestLevel = -Infinity;
+	// record highest level
 	for (let i = 0; i < numTiles; i++)
 	{
 		for (let j = 0; j < numTiles; j++)
 		{
 			tileIndex = i * numTiles + j;
-			tiles[tileIndex].occupied = '';
+			tiles[tileIndex].occupied = ''; // clear occupied fields
+
+			if (tiles[tileIndex].level > highestLevel)
+				highestLevel = tiles[tileIndex].level;
+		}
+	}
+
+	// place the pedestal on highest level and the Sentinel on top of that
+	for (let i = 0; i < numTiles; i++)
+	{
+		for (let j = 0; j < numTiles; j++)
+		{
+			tileIndex = i * numTiles + j;
+			if (tiles[tileIndex].level == highestLevel)
+			{
+				vertexIndex = (i * numTiles * 18) + (j * 18);
+				game_Objects[gameObjectCount].tag = "PEDESTAL_MODEL_ID";
+				tiles[tileIndex].occupied = 'pedestal';
+
+				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+					landscape_vpa[vertexIndex + 1] + 9,
+					landscape_vpa[vertexIndex + 2] + 5);
+
+				gameObjectCount++;
+
+				game_Objects[gameObjectCount].tag = "SENTINEL_MODEL_ID";
+				///tiles[tileIndex].occupied = 'sentinel';
+				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+					landscape_vpa[vertexIndex + 1] + 19,
+					landscape_vpa[vertexIndex + 2] + 5);
+				
+				gameObjectCount++;
+				
+				i = j = numTiles; // exit both loops
+			}
+		} // end for (let j = 0; j < numTiles; j++)
+	} // end for (let i = 0; i < numTiles; i++)
+	
+	randomThreshold = 0;
+	while (gameObjectCount < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
+	{
+		randomThreshold += 0.00001;
+		// place the sentries on the next highest available levels below the head Sentinel's top level
+		for (let i = 0; i < numTiles; i++)
+		{
+			for (let j = 0; j < numTiles; j++)
+			{
+				
+				if (gameObjectCount < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
+				{
+					tileIndex = i * numTiles + j;
+					if ( tiles[tileIndex].occupied == "" && (tiles[tileIndex].level == highestLevel || tiles[tileIndex].level == (highestLevel - 10) ||
+					tiles[tileIndex].level == (highestLevel - 20)) && Math.random() < randomThreshold )
+					{
+						vertexIndex = (i * numTiles * 18) + (j * 18);
+						game_Objects[gameObjectCount].tag = "SENTRY_MODEL_ID";
+						tiles[tileIndex].occupied = 'sentry';
+
+						game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+							landscape_vpa[vertexIndex + 1] + 9,
+							landscape_vpa[vertexIndex + 2] + 5);
+
+						gameObjectCount++;	
+					}
+				}
+				else i = j = numTiles; // exit both loops
+			} // end for (let j = 0; j < numTiles; j++)
+		} // end for (let i = 0; i < numTiles; i++)
+	} //end while (gameObjectCount < numOfSentries + 2)
+	
+
+
+	for (let i = 0; i < numTiles; i++)
+	{
+		for (let j = 0; j < numTiles; j++)
+		{
+			tileIndex = i * numTiles + j;
+			
 			if (tiles[tileIndex].code == 'checkColor0' || tiles[tileIndex].code == 'checkColor1')
 			{
-				if (Math.random() < 0.05)
+				if (tiles[tileIndex].occupied == "" && Math.random() < 0.05)
 				{
 					vertexIndex = (i * numTiles * 18) + (j * 18);
-					if (gameObjectCount < MAX_N_TREES)
+					if (gameObjectCount < MaxUnitsOfEnergy)
 					{
-						current_model_id = Math.floor(Math.random() * 7);
-						if (current_model_id == TREE_MODEL_ID)
-						{
-							game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
-							tiles[tileIndex].occupied = 'tree';
-						}	
-						else if (current_model_id == BOULDER_MODEL_ID)
-						{
-							game_Objects[gameObjectCount].tag = "BOULDER_MODEL_ID";
-							tiles[tileIndex].occupied = 'boulder';
-						}
-						else if (current_model_id == ROBOT_MODEL_ID)
-						{
-							game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
-							tiles[tileIndex].occupied = 'robot';
-						}	
-						else if (current_model_id == SENTRY_MODEL_ID)
-						{
-							game_Objects[gameObjectCount].tag = "SENTRY_MODEL_ID";
-							tiles[tileIndex].occupied = 'sentry';
-						}	
-						else if (current_model_id == PEDESTAL_MODEL_ID)
-						{
-							game_Objects[gameObjectCount].tag = "PEDESTAL_MODEL_ID";
-							tiles[tileIndex].occupied = 'pedestal';
-						}	
-						else if (current_model_id == SENTINEL_MODEL_ID)
-						{
-							game_Objects[gameObjectCount].tag = "SENTINEL_MODEL_ID";
-							tiles[tileIndex].occupied = 'sentinel';
-						}
-						else if (current_model_id == MEANIE_MODEL_ID)
-						{
-							game_Objects[gameObjectCount].tag = "MEANIE_MODEL_ID";
-							tiles[tileIndex].occupied = 'meanie';
-						}
-							
+						game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
+						tiles[tileIndex].occupied = 'tree';
+								
 						game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
 						landscape_vpa[vertexIndex + 1] + 9,
 						landscape_vpa[vertexIndex + 2] + 5);
 
 						gameObjectCount++;
 					}
-					else gameObjectCount = MAX_N_TREES;
+					else gameObjectCount = MaxUnitsOfEnergy;
 				}
 			}
 		} // end for (let j = 0; j < numTiles; j++)
@@ -1994,14 +2027,11 @@ function populateLevel()
 	console.log("topLevel_objects count:" + topLevel_totalWork.length);
 	BVH_Build_Iterative(topLevel_totalWork, topLevel_aabb_array);
 
-	for (let t = 0; t < 100; t++)
+	for (let i = 0; i < 256; i++)
 	{
-		tX2 = t * 2;
-		tX8 = t * 8;
-		topLevelAABBTree[tX2 + 0].set(topLevel_aabb_array[tX8 + 0], topLevel_aabb_array[tX8 + 1],
-			topLevel_aabb_array[tX8 + 2], topLevel_aabb_array[tX8 + 3]);
-		topLevelAABBTree[tX2 + 1].set(topLevel_aabb_array[tX8 + 4], topLevel_aabb_array[tX8 + 5],
-			topLevel_aabb_array[tX8 + 6], topLevel_aabb_array[tX8 + 7]);
+		iX4 = i * 4;
+		topLevelAABBTree[i].set(topLevel_aabb_array[iX4 + 0], topLevel_aabb_array[iX4 + 1],
+			topLevel_aabb_array[iX4 + 2], topLevel_aabb_array[iX4 + 3]);
 	}
 
 } // end function populateLevel()
