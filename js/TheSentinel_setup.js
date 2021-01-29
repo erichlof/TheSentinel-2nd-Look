@@ -336,7 +336,7 @@ function initSceneData()
 	// look slightly downward
 	cameraControlsPitchObject.rotation.x = -0.4;
 
-	// LIGHT SPHERE
+	// Sun
 	pathTracingScene.add(parentRotationObject);
 	parentRotationObject.add(sphereObject); // make this sphereObject a child of the rotation object
 
@@ -2041,11 +2041,15 @@ function populateLevel()
 			bounding_box_max.multiplyScalar(modelScale);
 		}
 
-		game_Objects[i].rotateOnAxis(upVector, Math.random() * Math.PI * 2);
+		if (i != 0 && i != playerRobotIndex) // don't randomly rotate pedestal or player robot
+			game_Objects[i].rotateOnAxis(upVector, Math.random() * Math.PI * 2);
+		// if (i == playerRobotIndex) // rotate player robot 180 degrees
+		// 	game_Objects[i].rotateOnAxis(upVector, Math.PI);
 		game_Objects[i].updateMatrixWorld(true);
 		objInvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
 		objInvMatrices[i].elements[15] = current_model_id;
-
+		
+		
 		bounding_box_min.add(game_Objects[i].position);
 		bounding_box_max.add(game_Objects[i].position);
 		bounding_box_centroid.copy(game_Objects[i].position);
@@ -2087,6 +2091,8 @@ function updateVariablesAndUniforms()
 	{
 		useGenericInput = true;
 
+		game_Objects[playerRobotIndex].rotation.set(0,0,0);
+
 		cameraControlsObject.position.set(0, 140, 450);
 		cameraControlsYawObject.rotation.set(0, 0, 0);
 		cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
@@ -2104,9 +2110,19 @@ function updateVariablesAndUniforms()
 	if (keyboard.pressed('enter') && canPressEnter)
 	{
 		useGenericInput = false;
-		
+
 		cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
 		cameraControlsObject.position.y += 4;
+
+		cameraControlsYawObject.rotation.set(0,0,0);
+		cameraControlsYawObject.lookAt(pathTracingScene.position);
+		cameraControlsYawObject.rotation.x = 0;
+		// yawObject's facing direction is facing opposite our camera, so turn it around 180 degrees (PI radians)
+		cameraControlsYawObject.rotation.y += Math.PI; 
+		cameraControlsYawObject.rotation.z = 0;
+
+		cameraControlsPitchObject.rotation.set(0,0,0);
+
 		apertureSize = 0.01;
 		pathTracingUniforms.uApertureSize.value = apertureSize;
 
@@ -2135,9 +2151,18 @@ function updateVariablesAndUniforms()
 	}
 		
 
-	
-	if (!useGenericInput) // if in game mode
+	 // if in game mode
+	if (!useGenericInput)
 	{
+		// initial robot model is facing us (which is backwards), 
+		//   so we must turn it around in order for our robot to look where our camera is looking
+		game_Objects[playerRobotIndex].rotation.set(0, Math.PI, 0); 
+		game_Objects[playerRobotIndex].rotateOnAxis(upVector, cameraControlsYawObject.rotation.y);
+		game_Objects[playerRobotIndex].updateMatrixWorld(true);
+		current_model_id = objInvMatrices[playerRobotIndex].elements[15];
+		objInvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
+		objInvMatrices[playerRobotIndex].elements[15] = current_model_id;
+
 		if (increaseFOV)
 		{
 			worldCamera.fov++;
@@ -2193,7 +2218,7 @@ function updateVariablesAndUniforms()
 	} // end if (!useGenericInput) // if in game mode
 
 
-	// SPHERE LIGHT
+	// SUN
 	lightAngle += 0.02 * frameTime;
 	if (lightAngle > Math.PI)
 	{
@@ -2217,14 +2242,17 @@ function updateVariablesAndUniforms()
 	sphereObject.getWorldPosition(sphereObjectPosition);
 	pathTracingUniforms.uSunDirection.value.copy(sphereObjectPosition.normalize());
 
-	for (let i = 0; i < topLevel_total_number_of_objects; i++)
+	/* for (let i = 0; i < topLevel_total_number_of_objects; i++)
 	{
-		game_Objects[i].rotateOnAxis(upVector, 0.5 * frameTime);
-		game_Objects[i].updateMatrixWorld(true);
-		current_model_id = objInvMatrices[i].elements[15];
-		objInvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
-		objInvMatrices[i].elements[15] = current_model_id;
-	}
+		if (i != playerRobotIndex)
+		{
+			game_Objects[i].rotateOnAxis(upVector, 0.5 * frameTime);
+			game_Objects[i].updateMatrixWorld(true);
+			current_model_id = objInvMatrices[i].elements[15];
+			objInvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
+			objInvMatrices[i].elements[15] = current_model_id;
+		}
+	} */
 
 	// cap FOV to 30 degrees max, similar to original game's 'tense tight view' feeling
 	if (worldCamera.fov > 30)
@@ -2274,7 +2302,7 @@ function updateVariablesAndUniforms()
 	
 	// INFO
 	cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press R to randomize game objects";
+		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter player's Robot";
 
 } // end function updateVariablesAndUniforms()
 
