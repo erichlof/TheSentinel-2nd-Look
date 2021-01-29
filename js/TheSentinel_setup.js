@@ -76,6 +76,7 @@ let gameObjectCount = 0;
 let numOfSentries = 0;
 let game_Objects = [];
 let randomThreshold = 0;
+let okToPlaceRobot = false;
 
 let tree_modelMesh;
 let tree_modelMaterialList = [];
@@ -1884,7 +1885,7 @@ function populateLevel()
 				if (gameObjectCount < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
 				{
 					tileIndex = i * numTiles + j;
-					if ( tiles[tileIndex].occupied == "" && tiles[tileIndex].level > lowestLevel && Math.random() < randomThreshold )
+					if ( tiles[tileIndex].occupied == "" && tiles[tileIndex].level > 0 && Math.random() < randomThreshold )
 					{
 						vertexIndex = (i * numTiles * 18) + (j * 18);
 						game_Objects[gameObjectCount].tag = "SENTRY_MODEL_ID";
@@ -1904,12 +1905,37 @@ function populateLevel()
 
 
 	// place the player's initial robot on the lowest level
+	okToPlaceRobot = false;
+
 	for (let i = 0; i < numTiles; i++)
 	{
 		for (let j = 0; j < numTiles; j++)
 		{
 			tileIndex = i * numTiles + j;
 			if (tiles[tileIndex].level == lowestLevel)
+			{ // check surrounding tiles to see if any are playable, want to avoid starting player in 1 isolated square
+				if (i > 0)
+				{	//check North
+					if (tiles[(i - 1) * numTiles + j].level == lowestLevel)
+						okToPlaceRobot = true;
+				}
+				if (i < numTiles - 1)
+				{	//check South
+					if (tiles[(i + 1) * numTiles + j].level == lowestLevel)
+						okToPlaceRobot = true;
+				}
+				if (j > 0)
+				{	//check West
+					if (tiles[i * numTiles + (j - 1)].level == lowestLevel)
+						okToPlaceRobot = true;
+				}
+				if (j < numTiles - 1)
+				{	//check East
+					if (tiles[i * numTiles + (j + 1)].level == lowestLevel)
+						okToPlaceRobot = true;
+				}	
+			}
+			if (okToPlaceRobot)
 			{
 				vertexIndex = (i * numTiles * 18) + (j * 18);
 				game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
@@ -1926,6 +1952,34 @@ function populateLevel()
 			}
 		} // end for (let j = 0; j < numTiles; j++)
 	} // end for (let i = 0; i < numTiles; i++)
+
+	// if we failed to find a decent starting postion for player's Robot, try again with less restrictions
+	if (!okToPlaceRobot)
+	{
+		for (let i = 0; i < numTiles; i++)
+		{
+			for (let j = 0; j < numTiles; j++)
+			{
+				tileIndex = i * numTiles + j;
+				
+				if (tiles[tileIndex].level == lowestLevel + 10)
+				{
+					vertexIndex = (i * numTiles * 18) + (j * 18);
+					game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
+					tiles[tileIndex].occupied = 'robot';
+					playerRobotIndex = gameObjectCount; // record player's robot Object3D array index
+
+					game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+						landscape_vpa[vertexIndex + 1] + 9,
+						landscape_vpa[vertexIndex + 2] + 5);
+
+					gameObjectCount++;
+
+					i = j = numTiles; // exit both loops
+				}
+			} // end for (let j = 0; j < numTiles; j++)
+		} // end for (let i = 0; i < numTiles; i++)
+	} // end if (!okToPlaceRobot)
 	
 
 	// finally fill up the remaining landscape's maxUnitsOfEnergy with trees (worth 1 energy unit each)
