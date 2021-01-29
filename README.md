@@ -8,6 +8,7 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 * move Mouse to free-look
 * WASD,QZ to fly camera (current debug mode, will be disabled when gameplay added)
 * Press SPACEBAR to generate a new random landscape (cycles through 4 color themes)
+* Press ENTER to enter the player's Robot (this is where you would start each game level)
 * Press R to randomly re-position game objects (will be disabled when gameplay added)
 * Right/Left Arrows to open/close camera aperture (depth of field effect)
 <br><br>
