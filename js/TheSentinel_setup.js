@@ -1535,7 +1535,7 @@ function buildNewLevel()
 	i_offset = Math.round(Math.random() * numVertices);
 	j_offset = Math.round(Math.random() * numVertices);
 	frequency = 0.02;
-	amplitude = 2;
+	amplitude = 1.5;
 	for (let i = 0; i < numVertices; i++)
 	{
 		for (let j = 0; j < numVertices; j++)
@@ -1809,7 +1809,7 @@ function buildNewLevel()
 
 function populateLevel()
 {
-	numOfSentries = 7;
+	numOfSentries = 2;
 	MaxUnitsOfEnergy = 64;
 	// Starting Player Robot Energy Inventory: 10 units (3 robots and 1 tree)
 	// Sentinel: 4 units
@@ -1884,8 +1884,7 @@ function populateLevel()
 				if (gameObjectCount < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
 				{
 					tileIndex = i * numTiles + j;
-					if ( tiles[tileIndex].occupied == "" && (tiles[tileIndex].level == highestLevel || tiles[tileIndex].level == (highestLevel - 10) ||
-					tiles[tileIndex].level == (highestLevel - 20)) && Math.random() < randomThreshold )
+					if ( tiles[tileIndex].occupied == "" && tiles[tileIndex].level > lowestLevel && Math.random() < randomThreshold )
 					{
 						vertexIndex = (i * numTiles * 18) + (j * 18);
 						game_Objects[gameObjectCount].tag = "SENTRY_MODEL_ID";
@@ -1942,7 +1941,7 @@ function populateLevel()
 
 				if (tiles[tileIndex].code == 'checkColor0' || tiles[tileIndex].code == 'checkColor1')
 				{
-					if (tiles[tileIndex].occupied == "" && tiles[tileIndex].level < (highestLevel - 20) && Math.random() < randomThreshold)
+					if (tiles[tileIndex].occupied == "" && tiles[tileIndex].level < highestLevel && Math.random() < randomThreshold)
 					{
 						vertexIndex = (i * numTiles * 18) + (j * 18);
 						if (gameObjectCount < MaxUnitsOfEnergy)
@@ -2087,11 +2086,12 @@ function updateVariablesAndUniforms()
 	if (keyboard.pressed('space') && canPressSpace)
 	{
 		useGenericInput = true;
-		
+
 		cameraControlsObject.position.set(0, 140, 450);
 		cameraControlsYawObject.rotation.set(0, 0, 0);
 		cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
 		apertureSize = 0.0;
+		pathTracingUniforms.uApertureSize.value = apertureSize;
 
 		buildNewLevel();
 		canPressSpace = false;
@@ -2104,10 +2104,11 @@ function updateVariablesAndUniforms()
 	if (keyboard.pressed('enter') && canPressEnter)
 	{
 		useGenericInput = false;
-
+		
 		cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
 		cameraControlsObject.position.y += 4;
 		apertureSize = 0.01;
+		pathTracingUniforms.uApertureSize.value = apertureSize;
 
 		canPressEnter = false;
 	}
@@ -2128,7 +2129,11 @@ function updateVariablesAndUniforms()
 	}
 
 	if (apertureSize > 1.0)
+	{
 		apertureSize = 1.0;
+		pathTracingUniforms.uApertureSize.value = apertureSize;
+	}
+		
 
 	
 	if (!useGenericInput) // if in game mode
@@ -2169,8 +2174,8 @@ function updateVariablesAndUniforms()
 		if (increaseAperture)
 		{
 			apertureSize += 0.01;
-			if (apertureSize > 100.0)
-				apertureSize = 100.0;
+			if (apertureSize > 1.0)
+				apertureSize = 1.0;
 			pathTracingUniforms.uApertureSize.value = apertureSize;
 			cameraIsMoving = true;
 			increaseAperture = false;
