@@ -238,7 +238,7 @@ void Object_BVH_Intersect( Ray rObj, mat3 invMatrix, in float depth_id )
 
 
 //-------------------------------------------------------------------------------
-void SceneIntersect( Ray r )
+void SceneIntersect( Ray r, int bounces )
 //-------------------------------------------------------------------------------
 {
 	BoxNode currentBoxNode, nodeA, nodeB, tmpNode;
@@ -539,6 +539,9 @@ void SceneIntersect( Ray r )
 		// 	intersec.type = COAT;
 		// }
 
+		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 3.0) 
+			continue; // don't want our view blocked by the inside of our robot's head and shoulders
+
 		Object_BVH_Intersect(rObj, mat3(invMatrix), model_id);
 
         } // end while (true)
@@ -584,7 +587,7 @@ vec3 CalculateRadiance(Ray r)
 	for (int bounces = 0; bounces < 3; bounces++)
 	{
 
-		SceneIntersect(r);
+		SceneIntersect(r, bounces);
 
 		// // for testing object placement
 		// if (bounces == 0 && intersec.type == LIGHT)
