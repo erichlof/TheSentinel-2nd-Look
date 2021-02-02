@@ -6,16 +6,21 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 
 * Click anywhere to capture mouse
 * move Mouse to free-look
-* WASD,QZ to fly camera (current debug mode, will be disabled when gameplay added)
-* Press SPACEBAR to generate a new random landscape (cycles through 4 color themes)
-* Press ENTER to enter the player's Robot (this is where you would start each game level)
-* Press R to randomly re-position game objects (will be disabled when gameplay added)
 * Right/Left Arrows to open/close camera aperture (depth of field effect)
+* WASD,QZ to fly camera in Landscape selection mode (disabled when entering your Robot in game mode)
+* Press SPACEBAR to generate a new random landscape (cycles through 4 color themes)
+* Press ENTER to enter the player's starting Robot (this is where you would start each game level)
+* With a checkerboard tile selected, Press R to create another Robot
+* With that new robot's checkerboard tile selected, Press E to Enter that other robot
+* With a checkerboard tile selected, Press B to create a Boulder (a Base on which your other robots will stand: non-functional - W.I.P.)
+* With a checkerboard tile selected, Press T to create a Tree
+
 <br><br>
 
 <h2>TODO</h2>
 
 * Make the Sentinel Game! lol - now that the rendering is mostly worked out, add the actual gameplay and game logic
+* Add ability to stack Boulders(Bases) on top of each other, and your newly created Robots on top of those
 * Add special effects such as the cool pixel dissolve when an item/player is absorbed
 * Add simple GUI showing player assets as well as player visibility to The Sentinel and lower Sentries
 * Add the classic original sound effects and short recurring melodic theme
