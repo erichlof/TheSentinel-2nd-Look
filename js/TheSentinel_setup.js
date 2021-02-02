@@ -29,7 +29,13 @@ let nextRowIndex = 0;
 let highestLevel = 0;
 let lowestLevel = 0;
 let canPressSpace = true;
+let canPressEnter = true;
+let canPressT = true;
+let canPressB = true;
 let canPressR = true;
+let canPressE = true;
+let canPressA = true;
+let inGame = false;
 let simplex = new THREE.SimplexNoise();
 let vertexHeights = new Float32Array(numVertices * numVertices);
 let levelCounter = -1;
@@ -38,8 +44,7 @@ let modelScale = 10.0;
 let MaxUnitsOfEnergy = 64;
 let materialNumber = 0;
 let buildnodesLength = 0;
-let objInvMatrices = [];
-let topLevelAABBTree = [];
+
 
 let landscape_total_number_of_triangles = 0;
 let landscape_vpa;
@@ -75,6 +80,9 @@ let MEANIE_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * MEANIE_MODEL_ID);
 let gameObjectCount = 0;
 let numOfSentries = 0;
 let game_Objects = [];
+let gameObject_boundingBoxes = [];
+let objInvMatrices = [];
+let topLevelAABBTree = [];
 let randomThreshold = 0;
 let okToPlaceRobot = false;
 
@@ -180,13 +188,19 @@ let modelsLoadedCount = 0;
 
 let raycaster = new THREE.Raycaster();
 let intersectArray = [];
+let hitPoint = new THREE.Vector3();
+let closestHitPoint = new THREE.Vector3();
+let testD = Infinity;
+let closestT = Infinity;
+let selectedObject = 0;
 let raycastIndex = 0;
 let viewRayTargetPosition = new THREE.Vector3();
 let selectedTile = 0;
 let blinkAngle = 0.0;
-
-let canPressEnter = true;
-let playerRobotIndex = 0;
+let playerRobotIndex = 0; 
+let targetVector = new THREE.Vector3();
+let ZVector = new THREE.Vector3(0, 0, 1);
+let turnAngle = 0;
 
 
 
@@ -337,7 +351,11 @@ function initSceneData()
 	// look slightly downward
 	cameraControlsPitchObject.rotation.x = -0.4;
 
+	worldCamera.fov = 30;
+
 	// Sun
+	parentRotationObject.visible = false;
+	sphereObject.visible = false;
 	pathTracingScene.add(parentRotationObject);
 	parentRotationObject.add(sphereObject); // make this sphereObject a child of the rotation object
 
@@ -354,6 +372,28 @@ function initSceneData()
 	sphereObject.position.set(0, 0, 0);
 	sphereObject.position.add(sunDirection);
 
+
+	// GAME OBJECTS (THREE.Object3Ds), their Bounding Boxes (THREE.Box3s) and their Inverse Matrices (THREE.Matrix4s)
+	for (let i = 0; i < 64; i++) // 64 = max object inverse matrices
+	{
+		game_Objects[i] = new THREE.Object3D(); // contains useful info like position, rotation, etc.
+		game_Objects[i].visible = false; // these game_Objects are just mathematical placeholders, not to be rendered
+		game_Objects[i].tag = ""; // custom property added 
+		game_Objects[i].tileIndex = -10; // custom property added
+
+		// store these game objects' bounding boxes for raycasting against and collision detection
+		gameObject_boundingBoxes[i] = new THREE.Box3();
+
+		// store these game objects' matrices (transforms), specifically their matrix 'inverses' for later efficiently ray tracing
+		objInvMatrices[i] = new THREE.Matrix4(); 
+	}
+	// GAME OBJECTS AABB Tree (array of THREE.Vector4 uniforms to be sent to the GPU)
+	for (let i = 0; i < 256; i++) // enough to hold ~ 64 nodes + 64 leaves * 2 (2 Vector4's for each node)
+	{
+		topLevelAABBTree[i] = new THREE.Vector4();
+	}
+
+
 	// TREE MODEL
 	tree_total_number_of_triangles = tree_modelMesh.geometry.attributes.position.array.length / 9;
 	tree_totalWork = new Uint32Array(tree_total_number_of_triangles);
@@ -364,17 +404,7 @@ function initSceneData()
 	tree_vpa = new Float32Array(tree_modelMesh.geometry.attributes.position.array);
 	tree_vna = new Float32Array(tree_modelMesh.geometry.attributes.normal.array);
 
-	for (let i = 0; i < 64; i++) // 64 = max object inverse matrices
-	{
-		game_Objects[i] = new THREE.Object3D();
-		game_Objects[i].tag = "";
-		objInvMatrices[i] = new THREE.Matrix4();
-	}
-	for (let i = 0; i < 256; i++) // enough to hold ~ 64 nodes + 64 leaves * 2 (2 Vector4's for each node)
-	{
-		topLevelAABBTree[i] = new THREE.Vector4();
-	}
-
+	
 	// BOULDER MODEL
 	boulder_total_number_of_triangles = boulder_modelMesh.geometry.attributes.position.array.length / 9;
 	boulder_totalWork = new Uint32Array(boulder_total_number_of_triangles);
@@ -440,7 +470,8 @@ function initSceneData()
 	meanie_vpa = new Float32Array(meanie_modelMesh.geometry.attributes.position.array);
 	meanie_vna = new Float32Array(meanie_modelMesh.geometry.attributes.normal.array);
 
-	// SETUP GAME OBJECT/MODELS 2D DATA TEXTURE ARRAYS
+
+	// SETUP GAME MODELS 2D DATA TEXTURE ARRAYS
 	models_triangle_array = new Float32Array(256 * 256 * 4 * 7); // * number of different models
 	models_aabb_array = new Float32Array(256 * 256 * 4 * 7); // * number of different models
 
@@ -484,6 +515,7 @@ function initSceneData()
 		vertexColors: THREE.VertexColors
 	});
 	planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+	planeMesh.visible = false;
 	pathTracingScene.add(planeMesh);
 
 	landscape_vpa = planeMesh.geometry.attributes.position.array;
@@ -1851,6 +1883,7 @@ function populateLevel()
 			{
 				vertexIndex = (i * numTiles * 18) + (j * 18);
 				game_Objects[gameObjectCount].tag = "PEDESTAL_MODEL_ID";
+				game_Objects[gameObjectCount].tileIndex = tileIndex;
 				tiles[tileIndex].occupied = 'pedestal';
 
 				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
@@ -1861,6 +1894,7 @@ function populateLevel()
 
 				game_Objects[gameObjectCount].tag = "SENTINEL_MODEL_ID";
 				///tiles[tileIndex].occupied = 'sentinel';
+				game_Objects[gameObjectCount].tileIndex = tileIndex;
 				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
 					landscape_vpa[vertexIndex + 1] + 19,
 					landscape_vpa[vertexIndex + 2] + 5);
@@ -1889,6 +1923,7 @@ function populateLevel()
 					{
 						vertexIndex = (i * numTiles * 18) + (j * 18);
 						game_Objects[gameObjectCount].tag = "SENTRY_MODEL_ID";
+						game_Objects[gameObjectCount].tileIndex = tileIndex;
 						tiles[tileIndex].occupied = 'sentry';
 
 						game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
@@ -1939,6 +1974,7 @@ function populateLevel()
 			{
 				vertexIndex = (i * numTiles * 18) + (j * 18);
 				game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
+				game_Objects[gameObjectCount].tileIndex = tileIndex;
 				tiles[tileIndex].occupied = 'robot';
 				playerRobotIndex = gameObjectCount; // record player's robot Object3D array index
 
@@ -1966,6 +2002,7 @@ function populateLevel()
 				{
 					vertexIndex = (i * numTiles * 18) + (j * 18);
 					game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
+					game_Objects[gameObjectCount].tileIndex = tileIndex;
 					tiles[tileIndex].occupied = 'robot';
 					playerRobotIndex = gameObjectCount; // record player's robot Object3D array index
 
@@ -2001,6 +2038,7 @@ function populateLevel()
 						if (gameObjectCount < MaxUnitsOfEnergy)
 						{
 							game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
+							game_Objects[gameObjectCount].tileIndex = tileIndex;
 							tiles[tileIndex].occupied = 'tree';
 
 							game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
@@ -2028,11 +2066,20 @@ function populateLevel()
 		if (game_Objects[i].tag == "TREE_MODEL_ID")
 		{
 			current_model_id = TREE_MODEL_ID;
+			// create slightly larger axis-aligned bounding box for raytracing traversal of the topLevel gameObjects' AABBTree on the GPU.
+			// Use slightly larger boundingSphere radius so the object can rotate arbitrarily on any axis
 			boundingSphereRadius = tree_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
+			// now create the usual slimmer axis-aligned bounding box for ray casting/collision detection(lower precision) routines on the js (CPU) side
+			gameObject_boundingBoxes[i].copy(tree_modelMesh.geometry.boundingBox);
+			// js-side bounding boxes are still in original model object space - so scale them up(or down, if desired) into world space size 
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			// finally translate the bounding box origin to its parent gameObject's world space location
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "BOULDER_MODEL_ID")
 		{
@@ -2043,6 +2090,11 @@ function populateLevel()
 			bounding_box_min.multiplyScalar(-modelScale);
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(boulder_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "ROBOT_MODEL_ID")
 		{
@@ -2053,6 +2105,11 @@ function populateLevel()
 			bounding_box_min.multiplyScalar(-modelScale);
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(robot_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "SENTRY_MODEL_ID")
 		{
@@ -2063,6 +2120,11 @@ function populateLevel()
 			bounding_box_min.multiplyScalar(-modelScale);
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(sentry_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "PEDESTAL_MODEL_ID")
 		{
@@ -2073,6 +2135,11 @@ function populateLevel()
 			bounding_box_min.multiplyScalar(-modelScale);
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(pedestal_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "SENTINEL_MODEL_ID")
 		{
@@ -2083,6 +2150,11 @@ function populateLevel()
 			bounding_box_min.multiplyScalar(-modelScale);
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(sentinel_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "MEANIE_MODEL_ID")
 		{
@@ -2093,12 +2165,18 @@ function populateLevel()
 			bounding_box_min.multiplyScalar(-modelScale);
 			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(meanie_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
+		
 
 		if (i != 0 && i != playerRobotIndex) // don't randomly rotate pedestal or player robot
-			game_Objects[i].rotateOnAxis(upVector, Math.random() * Math.PI * 2);
-		// if (i == playerRobotIndex) // rotate player robot 180 degrees
-		// 	game_Objects[i].rotateOnAxis(upVector, Math.PI);
+			game_Objects[i].rotation.y = Math.random() * Math.PI * 2;
+		else game_Objects[i].rotation.set(0,0,0);
+		
 		game_Objects[i].updateMatrixWorld(true);
 		objInvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
 		objInvMatrices[i].elements[15] = current_model_id;
@@ -2136,16 +2214,191 @@ function populateLevel()
 } // end function populateLevel()
 
 
+function updateTopLevel_BVH()
+{
+	topLevel_total_number_of_objects = gameObjectCount;
+	topLevel_totalWork = new Uint32Array(topLevel_total_number_of_objects);
+
+	for (let i = 0; i < topLevel_total_number_of_objects; i++)
+	{
+		if (game_Objects[i].tag == "TREE_MODEL_ID")
+		{
+			current_model_id = TREE_MODEL_ID;
+			boundingSphereRadius = tree_modelMesh.geometry.boundingSphere.radius;
+			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_min.multiplyScalar(-modelScale);
+			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(tree_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
+		}
+		else if (game_Objects[i].tag == "BOULDER_MODEL_ID")
+		{
+			current_model_id = BOULDER_MODEL_ID;
+			boundingSphereRadius = boulder_modelMesh.geometry.boundingSphere.radius;
+			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_min.multiplyScalar(-modelScale);
+			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(boulder_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
+		}
+		else if (game_Objects[i].tag == "ROBOT_MODEL_ID")
+		{
+			current_model_id = ROBOT_MODEL_ID;
+			boundingSphereRadius = robot_modelMesh.geometry.boundingSphere.radius;
+			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_min.multiplyScalar(-modelScale);
+			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(robot_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
+		}
+		else if (game_Objects[i].tag == "SENTRY_MODEL_ID")
+		{
+			current_model_id = SENTRY_MODEL_ID;
+			boundingSphereRadius = sentry_modelMesh.geometry.boundingSphere.radius;
+			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_min.multiplyScalar(-modelScale);
+			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(sentry_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
+		}
+		else if (game_Objects[i].tag == "PEDESTAL_MODEL_ID")
+		{
+			current_model_id = PEDESTAL_MODEL_ID;
+			boundingSphereRadius = pedestal_modelMesh.geometry.boundingSphere.radius;
+			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_min.multiplyScalar(-modelScale);
+			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(pedestal_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
+		}
+		else if (game_Objects[i].tag == "SENTINEL_MODEL_ID")
+		{
+			current_model_id = SENTINEL_MODEL_ID;
+			boundingSphereRadius = sentinel_modelMesh.geometry.boundingSphere.radius;
+			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_min.multiplyScalar(-modelScale);
+			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(sentinel_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
+		}
+		else if (game_Objects[i].tag == "MEANIE_MODEL_ID")
+		{
+			current_model_id = MEANIE_MODEL_ID;
+			boundingSphereRadius = meanie_modelMesh.geometry.boundingSphere.radius;
+			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_min.multiplyScalar(-modelScale);
+			bounding_box_max.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
+			bounding_box_max.multiplyScalar(modelScale);
+
+			gameObject_boundingBoxes[i].copy(meanie_modelMesh.geometry.boundingBox);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
+		}
+
+		bounding_box_min.add(game_Objects[i].position);
+		bounding_box_max.add(game_Objects[i].position);
+		bounding_box_centroid.copy(game_Objects[i].position);
+
+
+		iX9 = i * 9;
+		topLevel_aabb_array[iX9 + 0] = bounding_box_min.x;
+		topLevel_aabb_array[iX9 + 1] = bounding_box_min.y;
+		topLevel_aabb_array[iX9 + 2] = bounding_box_min.z;
+		topLevel_aabb_array[iX9 + 3] = bounding_box_max.x;
+		topLevel_aabb_array[iX9 + 4] = bounding_box_max.y;
+		topLevel_aabb_array[iX9 + 5] = bounding_box_max.z;
+		topLevel_aabb_array[iX9 + 6] = bounding_box_centroid.x;
+		topLevel_aabb_array[iX9 + 7] = bounding_box_centroid.y;
+		topLevel_aabb_array[iX9 + 8] = bounding_box_centroid.z;
+
+		topLevel_totalWork[i] = i;
+	} // end for (let i = 0; i < topLevel_total_number_of_objects; i++)
+
+	console.log("topLevel_objects count:" + topLevel_totalWork.length);
+	BVH_Build_Iterative(topLevel_totalWork, topLevel_aabb_array);
+
+	for (let i = 0; i < 256; i++)
+	{
+		iX4 = i * 4;
+		topLevelAABBTree[i].set(topLevel_aabb_array[iX4 + 0], topLevel_aabb_array[iX4 + 1],
+			topLevel_aabb_array[iX4 + 2], topLevel_aabb_array[iX4 + 3]);
+	}
+} // end function updateTopLevel_BVH()
+
+
 
 // called automatically from within the animate() function
 function updateVariablesAndUniforms()
 {
-	
+	if ( !inGame )
+	{
+		if (keyboard.pressed('enter') && canPressEnter)
+		{
+			useGenericInput = false;
+			inGame = true;
+
+			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
+			cameraControlsObject.position.y += 4;
+			
+			cameraControlsYawObject.rotation.set(0, 0, 0);
+			cameraControlsPitchObject.rotation.set(0, 0, 0);
+
+			cameraControlsYawObject.updateMatrixWorld(true);
+			cameraControlsPitchObject.updateMatrixWorld(true);
+
+			targetVector.copy(game_Objects[playerRobotIndex].position);
+			targetVector.y = 0;
+			targetVector.normalize();
+
+			// the following points the initial player's robot towards the middle of the landscape
+			turnAngle = Math.acos(ZVector.dot(targetVector));
+			if (game_Objects[playerRobotIndex].position.x < 0)
+				turnAngle = (Math.PI * 2) - turnAngle;
+			cameraControlsYawObject.rotation.y = turnAngle;
+
+
+			apertureSize = 0.01;
+			pathTracingUniforms.uApertureSize.value = apertureSize;
+
+			canPressEnter = false;
+		}
+		if (!keyboard.pressed('enter'))
+		{
+			canPressEnter = true;
+		}
+	} // end if ( !inGame )
+
 	if (keyboard.pressed('space') && canPressSpace)
 	{
 		useGenericInput = true;
+		inGame = false;
 
-		game_Objects[playerRobotIndex].rotation.set(0,0,0);
+		game_Objects[playerRobotIndex].rotation.set(0, 0, 0);
 
 		cameraControlsObject.position.set(0, 140, 450);
 		cameraControlsYawObject.rotation.set(0, 0, 0);
@@ -2161,67 +2414,33 @@ function updateVariablesAndUniforms()
 		canPressSpace = true;
 	}
 
-	if (keyboard.pressed('enter') && canPressEnter)
+	if (worldCamera.fov > 30)	
 	{
-		useGenericInput = false;
-
-		cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
-		cameraControlsObject.position.y += 4;
-
-		cameraControlsYawObject.rotation.set(0,0,0);
-		cameraControlsYawObject.lookAt(pathTracingScene.position);
-		cameraControlsYawObject.rotation.x = 0;
-		// yawObject's facing direction is facing opposite our camera, so turn it around 180 degrees (PI radians)
-		cameraControlsYawObject.rotation.y += Math.PI; 
-		cameraControlsYawObject.rotation.z = 0;
-
-		cameraControlsPitchObject.rotation.set(0,0,0);
-
-		apertureSize = 0.01;
-		pathTracingUniforms.uApertureSize.value = apertureSize;
-
-		canPressEnter = false;
+		worldCamera.fov = 30;
+		fovScale = worldCamera.fov * 0.5 * (Math.PI / 180.0);
+		pathTracingUniforms.uVLen.value = Math.tan(fovScale);
+		pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
 	}
-	if (!keyboard.pressed('enter'))
-	{
-		canPressEnter = true;
-	}
-
-
-	if (keyboard.pressed('R') && canPressR)
-	{
-		populateLevel();
-		canPressR = false;
-	}
-	if (!keyboard.pressed('R'))
-	{
-		canPressR = true;
-	}
-
 	if (apertureSize > 1.0)
 	{
 		apertureSize = 1.0;
 		pathTracingUniforms.uApertureSize.value = apertureSize;
 	}
 		
+	
+	if (inGame)
+	{
+		doGameLogic();
+	}
 
-	 // if in game mode
 	if (!useGenericInput)
 	{
-		// initial robot model is facing us (which is backwards), 
-		//   so we must turn it around in order for our robot to look where our camera is looking
-		game_Objects[playerRobotIndex].rotation.set(0, Math.PI, 0); 
-		game_Objects[playerRobotIndex].rotateOnAxis(upVector, cameraControlsYawObject.rotation.y);
-		game_Objects[playerRobotIndex].updateMatrixWorld(true);
-		current_model_id = objInvMatrices[playerRobotIndex].elements[15];
-		objInvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
-		objInvMatrices[playerRobotIndex].elements[15] = current_model_id;
-
+		// cap FOV to 30 degrees max, similar to original game's 'tense tight view' feeling
 		if (increaseFOV)
 		{
 			worldCamera.fov++;
-			if (worldCamera.fov > 150)
-				worldCamera.fov = 150;
+			if (worldCamera.fov > 30)
+				worldCamera.fov = 30;
 			fovScale = worldCamera.fov * 0.5 * (Math.PI / 180.0);
 			pathTracingUniforms.uVLen.value = Math.tan(fovScale);
 			pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
@@ -2268,10 +2487,9 @@ function updateVariablesAndUniforms()
 			cameraIsMoving = true;
 			decreaseAperture = false;
 		}
+	} // end if (!useGenericInput)
 
-	} // end if (!useGenericInput) // if in game mode
-
-
+	
 	// SUN
 	lightAngle += 0.02 * frameTime;
 	if (lightAngle > Math.PI)
@@ -2296,67 +2514,14 @@ function updateVariablesAndUniforms()
 	sphereObject.getWorldPosition(sphereObjectPosition);
 	pathTracingUniforms.uSunDirection.value.copy(sphereObjectPosition.normalize());
 
-	/* for (let i = 0; i < topLevel_total_number_of_objects; i++)
-	{
-		if (i != playerRobotIndex)
-		{
-			game_Objects[i].rotateOnAxis(upVector, 0.5 * frameTime);
-			game_Objects[i].updateMatrixWorld(true);
-			current_model_id = objInvMatrices[i].elements[15];
-			objInvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
-			objInvMatrices[i].elements[15] = current_model_id;
-		}
-	} */
-
-	// cap FOV to 30 degrees max, similar to original game's 'tense tight view' feeling
-	if (worldCamera.fov > 30)
-	{
-		worldCamera.fov = 30;
-		fovScale = worldCamera.fov * 0.5 * (Math.PI / 180.0);
-		pathTracingUniforms.uVLen.value = Math.tan(fovScale);
-		pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
-	}
-	
-
-	intersectArray.length = 0;
-	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
-	raycaster.intersectObject(planeMesh, false, intersectArray);
-	selectedTile = -10;
-	if (intersectArray.length > 0)
-	{
-		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
-		
-		if (tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped')
-		{
-			if (Math.cos(blinkAngle % (Math.PI * 2)) > 0)
-			{
-				if (intersectArray[0].face.a % 6 > 0)
-					selectedTile = ((intersectArray[0].face.a - 3) / 3) * 8;
-				else selectedTile = (intersectArray[0].face.a / 3) * 8;
-			}
-
-			blinkAngle += Math.PI * 3 * frameTime;
-		}
-		else blinkAngle = 0;
-		
-		cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code + " | level: " + tiles[raycastIndex].level.toFixed(0) + 
-			" | occupied: " + tiles[raycastIndex].occupied + "<br>";
-		viewRayTargetPosition.copy(intersectArray[0].point);
-		viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
-		focusDistance = intersectArray[0].distance;
-		//pathTracingUniforms.uFocusDistance.value = focusDistance;
-	}	
-	else 
-	{
-		viewRayTargetPosition.set(10000, 10000, 10000);
-		cameraInfoElement.innerHTML = "no intersection" + "<br>";
-	}
-
-	pathTracingUniforms.uSelectedTile.value = selectedTile;
 	
 	// INFO
-	cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter player's Robot";
+	if (inGame)
+		cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
+			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter player's Robot";
+	else
+		cameraInfoElement.innerHTML = "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
+			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter player's Robot";
 
 } // end function updateVariablesAndUniforms()
 
