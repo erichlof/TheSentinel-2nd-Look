@@ -103,7 +103,7 @@ function doGameLogic()
 
         if (keyboard.pressed('E') && canPressE)
         {
-                if (tiles[raycastIndex].occupied == 'robot')
+                if (tiles[raycastIndex].occupied == 'robot' || (selectedObject >= 0 && game_Objects[selectedObject].tag == 'ROBOT_MODEL_ID'))
                 {
                         for (let i = 0; i < 64; i++)
                         {
@@ -113,6 +113,9 @@ function doGameLogic()
                                         break;
                                 }
                         }
+
+                        if (selectedObject >= 0 && game_Objects[selectedObject].tag == 'ROBOT_MODEL_ID')
+                                playerRobotIndex = selectedObject;
 
                         cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
                         cameraControlsObject.position.y += 4;
@@ -153,7 +156,8 @@ function doGameLogic()
 
         for (let i = 0; i < 64; i++)
         {
-                if (i == playerRobotIndex) continue;
+                if (i == playerRobotIndex || (game_Objects[i].tag != 'ROBOT_MODEL_ID' && game_Objects[i].tag != 'BOULDER_MODEL_ID') ) 
+                        continue;
 
                 if (raycaster.ray.intersectBox(gameObject_boundingBoxes[i], hitPoint) != null)
                 {
@@ -201,10 +205,9 @@ function doGameLogic()
                 viewRayTargetPosition.copy(intersectArray[0].point);
                 viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
                 focusDistance = intersectArray[0].distance;
-                //pathTracingUniforms.uFocusDistance.value = focusDistance;
         }
         
-
         pathTracingUniforms.uSelectedTile.value = selectedTile;
+        pathTracingUniforms.uSelectedObject.value = selectedObject;
 
 } // end doGameLogic()
