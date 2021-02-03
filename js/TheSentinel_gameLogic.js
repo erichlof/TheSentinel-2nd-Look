@@ -17,7 +17,7 @@ function doGameLogic()
                                 landscape_vpa[vertexIndex + 1] + 9,
                                 landscape_vpa[vertexIndex + 2] + 5);
 
-                        game_Objects[gameObjectCount].rotateOnAxis(upVector, Math.random() * Math.PI * 2);
+                        game_Objects[gameObjectCount].rotation.y = Math.random() * Math.PI * 2;
                         game_Objects[gameObjectCount].updateMatrixWorld(true);
                         objInvMatrices[gameObjectCount].copy(game_Objects[gameObjectCount].matrixWorld).invert();
                         objInvMatrices[gameObjectCount].elements[15] = TREE_MODEL_ID;
@@ -51,7 +51,7 @@ function doGameLogic()
                                 landscape_vpa[vertexIndex + 2] + 5);
                         game_Objects[gameObjectCount].position.y -= 6.5;
 
-                        game_Objects[gameObjectCount].rotateOnAxis(upVector, Math.random() * Math.PI * 2);
+                        game_Objects[gameObjectCount].rotation.y = Math.random() * Math.PI * 2;
                         game_Objects[gameObjectCount].updateMatrixWorld(true);
                         objInvMatrices[gameObjectCount].copy(game_Objects[gameObjectCount].matrixWorld).invert();
                         objInvMatrices[gameObjectCount].elements[15] = BOULDER_MODEL_ID;
@@ -106,24 +106,30 @@ function doGameLogic()
 
         if (keyboard.pressed('E') && canPressE)
         {
-                if (tiles[raycastIndex].occupied == 'robot' || (selectedObject >= 0 && game_Objects[selectedObject].tag == 'ROBOT_MODEL_ID'))
+		if (raycastIndex >= 0 && tiles[raycastIndex].occupied == 'robot')
                 {
-                        tiles[ game_Objects[playerRobotIndex].tileIndex ].occupied = 'robot';
-                        tiles[raycastIndex].occupied = 'playerRobot';
-
-                        playerRobotIndex = tiles[raycastIndex].occupiedIndex;
-
-                        if (selectedObject >= 0 && game_Objects[selectedObject].tag == 'ROBOT_MODEL_ID')
-                                playerRobotIndex = selectedObject;
+			tiles[game_Objects[playerRobotIndex].tileIndex].occupied = 'robot';
+			tiles[raycastIndex].occupied = 'playerRobot';
+                        playerRobotIndex = tiles[raycastIndex].occupiedIndex;    
 
                         cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
                         cameraControlsObject.position.y += 4;
-
                         cameraControlsYawObject.rotation.y = game_Objects[playerRobotIndex].rotation.y;
                         cameraControlsYawObject.rotation.y += Math.PI;
-
                         cameraControlsPitchObject.rotation.x = 0;
-                }
+		}
+		else if (selectedObject >= 0 && game_Objects[selectedObject].tag == 'ROBOT_MODEL_ID')
+		{
+			tiles[game_Objects[playerRobotIndex].tileIndex].occupied = 'robot';
+			tiles[game_Objects[selectedObject].tileIndex].occupied = 'playerRobot';
+			playerRobotIndex = selectedObject;
+
+			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
+			cameraControlsObject.position.y += 4;
+			cameraControlsYawObject.rotation.y = game_Objects[playerRobotIndex].rotation.y;
+			cameraControlsYawObject.rotation.y += Math.PI;
+			cameraControlsPitchObject.rotation.x = 0;
+		}
 
                 canPressE = false;
         }
@@ -155,7 +161,8 @@ function doGameLogic()
 
         for (let i = 0; i < 64; i++)
         {
-                if (i == playerRobotIndex || (game_Objects[i].tag != 'ROBOT_MODEL_ID' && game_Objects[i].tag != 'BOULDER_MODEL_ID') ) 
+		if (i == playerRobotIndex || game_Objects[i].tileIndex < 0 || (game_Objects[i].tag != 'ROBOT_MODEL_ID' && 
+		   game_Objects[i].tag != 'BOULDER_MODEL_ID' && tiles[ game_Objects[i].tileIndex ].level <= tiles[ game_Objects[playerRobotIndex].tileIndex ].level) )
                         continue;
 
                 if (raycaster.ray.intersectBox(gameObject_boundingBoxes[i], hitPoint) != null)
@@ -176,12 +183,19 @@ function doGameLogic()
                 viewRayTargetPosition.copy(closestHitPoint);
                 focusDistance = closestT; 
         }
-        
+	
+	// check if the selected object (except boulder or robot) is on a different level than us - if so, disregard
+	if (selectedObject >= 0 && game_Objects[selectedObject].tag != 'BOULDER_MODEL_ID' && game_Objects[selectedObject].tag != 'ROBOT_MODEL_ID')
+	{
+		selectedObject = -10;
+	}
+	
 
         // raycast landscape terrain
         intersectArray.length = 0;
         raycaster.intersectObject(planeMesh, false, intersectArray);
-        selectedTile = -10;
+	selectedTile = -10; // reset index
+	raycastIndex = -10; // reset index
         if (intersectArray.length > 0 && intersectArray[0].distance < closestT)
         {
                 raycastIndex = Math.floor(intersectArray[0].face.a / 6);
@@ -199,7 +213,7 @@ function doGameLogic()
                 }
                 else blinkAngle = 0;
 
-                cameraInfoElement.innerHTML = "DEBUG- tile index:" + raycastIndex + " | tile code:" + tiles[raycastIndex].code + " | level:" + tiles[raycastIndex].level.toFixed(0) +
+                cameraInfoElement.innerHTML = "DEBUG tile index:" + raycastIndex + " | tile code:" + tiles[raycastIndex].code + " | level:" + tiles[raycastIndex].level.toFixed(0) +
                         " | occupied:" + tiles[raycastIndex].occupied + " | occupiedIndex:" + tiles[raycastIndex].occupiedIndex + "<br>";
                 viewRayTargetPosition.copy(intersectArray[0].point);
                 viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
@@ -211,15 +225,42 @@ function doGameLogic()
 
 } // end function doGameLogic()
 
+
 function onDocumentMouseDown(event)
 {
-        if (!inGame)
+	if ( !inGame || keyboard.pressed('R') || keyboard.pressed('E') || 
+		keyboard.pressed('B') || keyboard.pressed('T') || keyboard.pressed('space') || keyboard.pressed('enter') )
                 return;
 
-        event.preventDefault();
+	event.preventDefault();
+	
+	if (selectedObject >= 0)
+	{
+		absorbedIndex = selectedObject;
+		game_Objects[absorbedIndex].rotation.z += Math.PI * 0.5; // temporary debug action to see if mousebutton interaction is working
+		game_Objects[absorbedIndex].updateMatrixWorld(true); // required for writing to uniforms below
 
-        // if (tiles[raycastIndex].occupied == 'tree')
-        // {
+		objInvMatrices[absorbedIndex].copy(game_Objects[absorbedIndex].matrixWorld).invert();
+		if (game_Objects[absorbedIndex].tag == 'ROBOT_MODEL_ID')
+			objInvMatrices[absorbedIndex].elements[15] = ROBOT_MODEL_ID;
+		else if (game_Objects[absorbedIndex].tag == 'TREE_MODEL_ID')
+			objInvMatrices[absorbedIndex].elements[15] = TREE_MODEL_ID;
+		else if (game_Objects[absorbedIndex].tag == 'BOULDER_MODEL_ID')
+			objInvMatrices[absorbedIndex].elements[15] = BOULDER_MODEL_ID;
+	}
+	else if (raycastIndex >= 0 && tiles[raycastIndex].occupied != '' && tiles[raycastIndex].occupied != 'playerRobot')
+	{
+		absorbedIndex = tiles[raycastIndex].occupiedIndex;
+		game_Objects[absorbedIndex].rotation.z += Math.PI * 0.5; // temporary debug action to see if mousebutton interaction is working
+		game_Objects[absorbedIndex].updateMatrixWorld(true); // required for writing to uniforms below
 
-        // }
-}
+		objInvMatrices[absorbedIndex].copy(game_Objects[absorbedIndex].matrixWorld).invert();
+		if (game_Objects[absorbedIndex].tag == 'ROBOT_MODEL_ID')
+			objInvMatrices[absorbedIndex].elements[15] = ROBOT_MODEL_ID;
+		else if (game_Objects[absorbedIndex].tag == 'TREE_MODEL_ID')
+			objInvMatrices[absorbedIndex].elements[15] = TREE_MODEL_ID;
+		else if (game_Objects[absorbedIndex].tag == 'BOULDER_MODEL_ID')
+			objInvMatrices[absorbedIndex].elements[15] = BOULDER_MODEL_ID;
+	}
+
+} // end function onDocumentMouseDown(event)
