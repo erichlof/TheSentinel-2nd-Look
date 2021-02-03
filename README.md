@@ -11,8 +11,8 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 * Press SPACEBAR to generate a new random landscape (cycles through 4 color themes)
 * Press ENTER to enter the player's starting Robot (this is where you would start each game level)
 * With a checkerboard tile selected, Press R to create another Robot
-* With that new robot's checkerboard tile selected, Press E to Enter that other robot
-* With a checkerboard tile selected, Press B to create a Boulder (a Base on which your other robots will stand: non-functional - W.I.P.)
+* With that new robot selected (or its checkerboard tile selected), Press E to Enter that other robot
+* With a checkerboard tile selected, Press B to create a Boulder (a Base on which your other robots will stand: non-functional at the moment - W.I.P.)
 * With a checkerboard tile selected, Press T to create a Tree
 
 <br><br>
