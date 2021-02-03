@@ -342,6 +342,9 @@ function initSceneData()
 {
 
 	// scene/demo-specific three.js objects setup goes here
+
+	document.addEventListener('mousedown', onDocumentMouseDown);
+
 	//pixelRatio = 1; // for computers with more powerful graphics cards
 
 	EPS_intersect = mouseControl ? 0.01 : 1.0; // less precision on mobile
@@ -505,7 +508,8 @@ function initSceneData()
 			tiles.push({
 				level: 0,
 				code: '',
-				occupied: ''
+				occupied: '',
+				occupiedIndex: -10
 			});
 		}
 	}
@@ -1867,6 +1871,7 @@ function populateLevel()
 		{
 			tileIndex = i * numTiles + j;
 			tiles[tileIndex].occupied = ''; // clear occupied fields
+			tiles[tileIndex].occupiedIndex = -10;
 
 			if (tiles[tileIndex].level > highestLevel)
 				highestLevel = tiles[tileIndex].level;
@@ -1887,6 +1892,7 @@ function populateLevel()
 				game_Objects[gameObjectCount].tag = "PEDESTAL_MODEL_ID";
 				game_Objects[gameObjectCount].tileIndex = tileIndex;
 				tiles[tileIndex].occupied = 'pedestal';
+				tiles[tileIndex].occupiedIndex = gameObjectCount;
 
 				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
 					landscape_vpa[vertexIndex + 1] + 9,
@@ -1927,6 +1933,7 @@ function populateLevel()
 						game_Objects[gameObjectCount].tag = "SENTRY_MODEL_ID";
 						game_Objects[gameObjectCount].tileIndex = tileIndex;
 						tiles[tileIndex].occupied = 'sentry';
+						tiles[tileIndex].occupiedIndex = gameObjectCount;
 
 						game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
 							landscape_vpa[vertexIndex + 1] + 9,
@@ -1977,7 +1984,8 @@ function populateLevel()
 				vertexIndex = (i * numTiles * 18) + (j * 18);
 				game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
 				game_Objects[gameObjectCount].tileIndex = tileIndex;
-				tiles[tileIndex].occupied = 'robot';
+				tiles[tileIndex].occupied = 'playerRobot';
+				tiles[tileIndex].occupiedIndex = gameObjectCount;
 				playerRobotIndex = gameObjectCount; // record player's robot Object3D array index
 
 				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
@@ -2005,7 +2013,8 @@ function populateLevel()
 					vertexIndex = (i * numTiles * 18) + (j * 18);
 					game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
 					game_Objects[gameObjectCount].tileIndex = tileIndex;
-					tiles[tileIndex].occupied = 'robot';
+					tiles[tileIndex].occupied = 'playerRobot';
+					tiles[tileIndex].occupiedIndex = gameObjectCount;
 					playerRobotIndex = gameObjectCount; // record player's robot Object3D array index
 
 					game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
@@ -2042,6 +2051,7 @@ function populateLevel()
 							game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
 							game_Objects[gameObjectCount].tileIndex = tileIndex;
 							tiles[tileIndex].occupied = 'tree';
+							tiles[tileIndex].occupiedIndex = gameObjectCount;
 
 							game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
 								landscape_vpa[vertexIndex + 1] + 9,
