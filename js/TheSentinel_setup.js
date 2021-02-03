@@ -2518,10 +2518,12 @@ function updateVariablesAndUniforms()
 	// INFO
 	if (inGame)
 		cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter player's Robot";
+			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter game mode" + "<br>" +
+			"Press T: create Tree | B: create Boulder | R: create Robot | E: Enter another robot";
 	else
 		cameraInfoElement.innerHTML = "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter player's Robot";
+			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter game mode" + "<br>" +
+			"Press T: create Tree | B: create Boulder | R: create Robot | E: Enter another robot";
 
 } // end function updateVariablesAndUniforms()
 
