@@ -198,7 +198,8 @@ let raycastIndex = 0;
 let viewRayTargetPosition = new THREE.Vector3();
 let selectedTile = -10.0;
 let blinkAngle = 0.0;
-let playerRobotIndex = 0; 
+let playerRobotIndex = 0;
+let absorbedIndex = 0; 
 let targetVector = new THREE.Vector3();
 let ZVector = new THREE.Vector3(0, 0, 1);
 let turnAngle = 0;
@@ -1848,6 +1849,12 @@ function buildNewLevel()
 
 function populateLevel()
 {
+	// clear out game object rotations
+	for (let i = 0; i < 64; i++)
+	{
+		game_Objects[i].rotation.set(0, 0, 0);
+	}
+
 	numOfSentries = 2;
 	MaxUnitsOfEnergy = 64;
 	// Starting Player Robot Energy Inventory: 10 units (3 robots and 1 tree)
