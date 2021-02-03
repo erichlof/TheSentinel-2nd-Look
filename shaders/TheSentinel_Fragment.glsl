@@ -14,6 +14,7 @@ uniform vec4 uTopLevelAABBTree[256];
 uniform vec3 uSunDirection;
 uniform vec3 uViewRayTargetPosition;
 uniform float uSelectedTile;
+uniform float uSelectedObject;
 
 #define INV_TEXTURE_WIDTH 0.00390625 // (1 / 256 texture width)
 
@@ -85,7 +86,7 @@ BoxNode GetBoxNode2DArray(in float i, in float depth)
 
 
 //-----------------------------------------------------------------------------------------------------------------------
-void Object_BVH_Intersect( Ray rObj, mat3 invMatrix, in float depth_id )
+void Object_BVH_Intersect( Ray rObj, mat3 invMatrix, in float depth_id, in bool objectIsSelected )
 //-----------------------------------------------------------------------------------------------------------------------
 {
 	BoxNode currentBoxNode, nodeA, nodeB, tmpNode;
@@ -228,7 +229,7 @@ void Object_BVH_Intersect( Ray rObj, mat3 invMatrix, in float depth_id )
 		// else use vertex normals
 		//triangleW = 1.0 - triangleU - triangleV;
 		//intersec.normal = normalize(triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
-		intersec.color = vec3(vd4.w, vd5.xy);
+		intersec.color = objectIsSelected ? vec3(0,2,1) : vec3(vd4.w, vd5.xy);
 		intersec.type = depth_id == 4.0 ? COAT : DIFF;
 		//intersec.type = LIGHT; intersec.emission = vec3(1,0,1); // for testing object placement
 
@@ -272,6 +273,7 @@ void SceneIntersect( Ray r, int bounces )
 	bool skip = false;
 	bool triangleLookupNeeded = false;
 	bool isRayExiting;
+	bool objectIsSelected = false;
 
 	intersec.t = INFINITY;
 
@@ -527,22 +529,11 @@ void SceneIntersect( Ray r, int bounces )
 		rObj.origin = vec3( invMatrix * vec4(r.origin, 1.0) );
 		rObj.direction = vec3( invMatrix * vec4(r.direction, 0.0) );
 
-		// d = BoxIntersect(vec3(-4.0625,-9.0625,-4.0625), vec3(4.0625,9.0625,4.0625), rObj, normal, isRayExiting);
-		// if (d < intersec.t)
-		// {
-		// 	intersec.t = d;
-		// 	// transfom normal back into world space
-		// 	normal = normalize(normal);
-		// 	intersec.normal = normalize(transpose(mat3(invMatrix)) * normal);
-		// 	intersec.emission = vec3(0);
-		// 	intersec.color = vec3(1, 1, 0);
-		// 	intersec.type = COAT;
-		// }
-
 		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 3.0) 
 			continue; // don't want our view blocked by the inside of our robot's head and shoulders
 
-		Object_BVH_Intersect(rObj, mat3(invMatrix), model_id);
+		objectIsSelected = uSelectedObject == currentBoxNode.data0.x;
+		Object_BVH_Intersect(rObj, mat3(invMatrix), model_id, objectIsSelected);
 
         } // end while (true)
 
