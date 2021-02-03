@@ -41,6 +41,7 @@ let vertexHeights = new Float32Array(numVertices * numVertices);
 let levelCounter = -1;
 let upVector = new THREE.Vector3(0, 1, 0);
 let modelScale = 10.0;
+let scaleFactor = 0.9;
 let MaxUnitsOfEnergy = 64;
 let materialNumber = 0;
 let buildnodesLength = 0;
@@ -192,10 +193,10 @@ let hitPoint = new THREE.Vector3();
 let closestHitPoint = new THREE.Vector3();
 let testD = Infinity;
 let closestT = Infinity;
-let selectedObject = 0;
+let selectedObject = -10.0;
 let raycastIndex = 0;
 let viewRayTargetPosition = new THREE.Vector3();
-let selectedTile = 0;
+let selectedTile = -10.0;
 let blinkAngle = 0.0;
 let playerRobotIndex = 0; 
 let targetVector = new THREE.Vector3();
@@ -1398,9 +1399,10 @@ function initPathTracingShaders()
 	pathTracingUniforms.tLandscape_AABBTexture = { value: landscape_aabbDataTexture };
 	pathTracingUniforms.uTopLevelAABBTree = { value: topLevelAABBTree };
 	pathTracingUniforms.uObjInvMatrices = { value: objInvMatrices };
-	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };
+	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };//new THREE.Vector3 because another variable value is used
 	pathTracingUniforms.uViewRayTargetPosition = { value: viewRayTargetPosition };
 	pathTracingUniforms.uSelectedTile = { value: selectedTile };
+	pathTracingUniforms.uSelectedObject = { value: selectedObject };
 
 	pathTracingDefines = {
 		//NUMBER_OF_TRIANGLES: total_number_of_triangles
@@ -2076,8 +2078,8 @@ function populateLevel()
 			// now create the usual slimmer axis-aligned bounding box for ray casting/collision detection(lower precision) routines on the js (CPU) side
 			gameObject_boundingBoxes[i].copy(tree_modelMesh.geometry.boundingBox);
 			// js-side bounding boxes are still in original model object space - so scale them up(or down, if desired) into world space size 
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			// finally translate the bounding box origin to its parent gameObject's world space location
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
@@ -2092,8 +2094,8 @@ function populateLevel()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(boulder_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "ROBOT_MODEL_ID")
@@ -2107,8 +2109,8 @@ function populateLevel()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(robot_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "SENTRY_MODEL_ID")
@@ -2122,8 +2124,8 @@ function populateLevel()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(sentry_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "PEDESTAL_MODEL_ID")
@@ -2137,8 +2139,8 @@ function populateLevel()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(pedestal_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "SENTINEL_MODEL_ID")
@@ -2152,8 +2154,8 @@ function populateLevel()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(sentinel_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "MEANIE_MODEL_ID")
@@ -2167,8 +2169,8 @@ function populateLevel()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(meanie_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		
@@ -2231,8 +2233,8 @@ function updateTopLevel_BVH()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(tree_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "BOULDER_MODEL_ID")
@@ -2245,8 +2247,8 @@ function updateTopLevel_BVH()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(boulder_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "ROBOT_MODEL_ID")
@@ -2259,8 +2261,8 @@ function updateTopLevel_BVH()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(robot_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "SENTRY_MODEL_ID")
@@ -2273,8 +2275,8 @@ function updateTopLevel_BVH()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(sentry_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "PEDESTAL_MODEL_ID")
@@ -2287,8 +2289,8 @@ function updateTopLevel_BVH()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(pedestal_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "SENTINEL_MODEL_ID")
@@ -2301,8 +2303,8 @@ function updateTopLevel_BVH()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(sentinel_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "MEANIE_MODEL_ID")
@@ -2315,8 +2317,8 @@ function updateTopLevel_BVH()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(meanie_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * 0.8);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * 0.8);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 
@@ -2514,7 +2516,7 @@ function updateVariablesAndUniforms()
 	sphereObject.getWorldPosition(sphereObjectPosition);
 	pathTracingUniforms.uSunDirection.value.copy(sphereObjectPosition.normalize());
 
-	
+
 	// INFO
 	if (inGame)
 		cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
