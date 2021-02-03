@@ -11,6 +11,7 @@ function doGameLogic()
                         game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
                         game_Objects[gameObjectCount].tileIndex = raycastIndex;
                         tiles[raycastIndex].occupied = 'tree';
+                        tiles[raycastIndex].occupiedIndex = gameObjectCount;
 
                         game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
                                 landscape_vpa[vertexIndex + 1] + 9,
@@ -43,6 +44,7 @@ function doGameLogic()
                         game_Objects[gameObjectCount].tag = "BOULDER_MODEL_ID";
                         game_Objects[gameObjectCount].tileIndex = raycastIndex;
                         tiles[raycastIndex].occupied = 'boulder';
+                        tiles[raycastIndex].occupiedIndex = gameObjectCount;
 
                         game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
                                 landscape_vpa[vertexIndex + 1] + 9,
@@ -76,6 +78,7 @@ function doGameLogic()
                         game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
                         game_Objects[gameObjectCount].tileIndex = raycastIndex;
                         tiles[raycastIndex].occupied = 'robot';
+                        tiles[raycastIndex].occupiedIndex = gameObjectCount;
 
                         game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
                                 landscape_vpa[vertexIndex + 1] + 9,
@@ -105,14 +108,10 @@ function doGameLogic()
         {
                 if (tiles[raycastIndex].occupied == 'robot' || (selectedObject >= 0 && game_Objects[selectedObject].tag == 'ROBOT_MODEL_ID'))
                 {
-                        for (let i = 0; i < 64; i++)
-                        {
-                                if (game_Objects[i].tileIndex == raycastIndex)
-                                {
-                                        playerRobotIndex = i;
-                                        break;
-                                }
-                        }
+                        tiles[ game_Objects[playerRobotIndex].tileIndex ].occupied = 'robot';
+                        tiles[raycastIndex].occupied = 'playerRobot';
+
+                        playerRobotIndex = tiles[raycastIndex].occupiedIndex;
 
                         if (selectedObject >= 0 && game_Objects[selectedObject].tag == 'ROBOT_MODEL_ID')
                                 playerRobotIndex = selectedObject;
@@ -200,8 +199,8 @@ function doGameLogic()
                 }
                 else blinkAngle = 0;
 
-                cameraInfoElement.innerHTML = "tile code: " + tiles[raycastIndex].code + " | level: " + tiles[raycastIndex].level.toFixed(0) +
-                        " | occupied: " + tiles[raycastIndex].occupied + "<br>";
+                cameraInfoElement.innerHTML = "DEBUG- tile index:" + raycastIndex + " | tile code:" + tiles[raycastIndex].code + " | level:" + tiles[raycastIndex].level.toFixed(0) +
+                        " | occupied:" + tiles[raycastIndex].occupied + " | occupiedIndex:" + tiles[raycastIndex].occupiedIndex + "<br>";
                 viewRayTargetPosition.copy(intersectArray[0].point);
                 viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
                 focusDistance = intersectArray[0].distance;
@@ -210,4 +209,17 @@ function doGameLogic()
         pathTracingUniforms.uSelectedTile.value = selectedTile;
         pathTracingUniforms.uSelectedObject.value = selectedObject;
 
-} // end doGameLogic()
+} // end function doGameLogic()
+
+function onDocumentMouseDown(event)
+{
+        if (!inGame)
+                return;
+
+        event.preventDefault();
+
+        // if (tiles[raycastIndex].occupied == 'tree')
+        // {
+
+        // }
+}
