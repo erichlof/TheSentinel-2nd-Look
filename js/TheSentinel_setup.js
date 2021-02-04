@@ -193,10 +193,10 @@ let hitPoint = new THREE.Vector3();
 let closestHitPoint = new THREE.Vector3();
 let testD = Infinity;
 let closestT = Infinity;
-let selectedObject = -10.0;
+let selectedObjectIndex = -10.0;
 let raycastIndex = 0;
 let viewRayTargetPosition = new THREE.Vector3();
-let selectedTile = -10.0;
+let selectedTileIndex = -10.0;
 let blinkAngle = 0.0;
 let playerRobotIndex = 0;
 let absorbedIndex = 0; 
@@ -1406,8 +1406,8 @@ function initPathTracingShaders()
 	pathTracingUniforms.uObjInvMatrices = { value: objInvMatrices };
 	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };//new THREE.Vector3 because another variable value is used
 	pathTracingUniforms.uViewRayTargetPosition = { value: viewRayTargetPosition };
-	pathTracingUniforms.uSelectedTile = { value: selectedTile };
-	pathTracingUniforms.uSelectedObject = { value: selectedObject };
+	pathTracingUniforms.uSelectedTileIndex = { value: selectedTileIndex };
+	pathTracingUniforms.uSelectedObjectIndex = { value: selectedObjectIndex };
 
 	pathTracingDefines = {
 		//NUMBER_OF_TRIANGLES: total_number_of_triangles
