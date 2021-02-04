@@ -118,11 +118,11 @@ function doGameLogic()
                         cameraControlsYawObject.rotation.y += Math.PI;
                         cameraControlsPitchObject.rotation.x = 0;
 		}
-		else if (selectedObject >= 0 && game_Objects[selectedObject].tag == 'ROBOT_MODEL_ID')
+		else if (selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'ROBOT_MODEL_ID')
 		{
 			tiles[game_Objects[playerRobotIndex].tileIndex].occupied = 'robot';
-			tiles[game_Objects[selectedObject].tileIndex].occupied = 'playerRobot';
-			playerRobotIndex = selectedObject;
+			tiles[game_Objects[selectedObjectIndex].tileIndex].occupied = 'playerRobot';
+			playerRobotIndex = selectedObjectIndex;
 
 			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
 			cameraControlsObject.position.y += 4;
@@ -157,7 +157,7 @@ function doGameLogic()
         // raycast game objects
         testD = Infinity;
         closestT = Infinity;
-        selectedObject = -10;
+        selectedObjectIndex = -10;
 
         for (let i = 0; i < 64; i++)
         {
@@ -171,7 +171,7 @@ function doGameLogic()
                         if (testD < closestT)
                         {
                                 closestT = testD;
-                                selectedObject = i;
+                                selectedObjectIndex = i;
                                 closestHitPoint.copy(hitPoint);
                         }
                 }
@@ -179,34 +179,38 @@ function doGameLogic()
         
         if (closestT < Infinity)
         {
-                cameraInfoElement.innerHTML = "object: " + game_Objects[selectedObject].tag + ": " + selectedObject + "<br>";
+                cameraInfoElement.innerHTML = "object: " + game_Objects[selectedObjectIndex].tag + ": " + selectedObjectIndex + "<br>";
                 viewRayTargetPosition.copy(closestHitPoint);
                 focusDistance = closestT; 
         }
 	
 	// check if the selected object (except boulder or robot) is on a different level than us - if so, disregard
-	if (selectedObject >= 0 && game_Objects[selectedObject].tag != 'BOULDER_MODEL_ID' && game_Objects[selectedObject].tag != 'ROBOT_MODEL_ID')
+	if (selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag != 'BOULDER_MODEL_ID' && game_Objects[selectedObjectIndex].tag != 'ROBOT_MODEL_ID')
 	{
-		selectedObject = -10;
+		selectedObjectIndex = -10;
 	}
 	
 
         // raycast landscape terrain
         intersectArray.length = 0;
         raycaster.intersectObject(planeMesh, false, intersectArray);
-	selectedTile = -10; // reset index
+	selectedTileIndex = -10; // reset index
 	raycastIndex = -10; // reset index
         if (intersectArray.length > 0 && intersectArray[0].distance < closestT)
         {
                 raycastIndex = Math.floor(intersectArray[0].face.a / 6);
+
+                selectedObjectIndex = tiles[raycastIndex].occupiedIndex;
+                if (selectedObjectIndex == playerRobotIndex)
+                        selectedObjectIndex = -10;
 
                 if (tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped')
                 {
                         if (Math.cos(blinkAngle % (Math.PI * 2)) > 0)
                         {
                                 if (intersectArray[0].face.a % 6 > 0)
-                                        selectedTile = ((intersectArray[0].face.a - 3) / 3) * 8;
-                                else selectedTile = (intersectArray[0].face.a / 3) * 8;
+                                        selectedTileIndex = ((intersectArray[0].face.a - 3) / 3) * 8;
+                                else selectedTileIndex = (intersectArray[0].face.a / 3) * 8;
                         }
 
                         blinkAngle += Math.PI * 3 * frameTime;
@@ -220,8 +224,8 @@ function doGameLogic()
                 focusDistance = intersectArray[0].distance;
         }
         
-        pathTracingUniforms.uSelectedTile.value = selectedTile;
-        pathTracingUniforms.uSelectedObject.value = selectedObject;
+        pathTracingUniforms.uSelectedTileIndex.value = selectedTileIndex;
+        pathTracingUniforms.uSelectedObjectIndex.value = selectedObjectIndex;
 
 } // end function doGameLogic()
 
@@ -234,9 +238,9 @@ function onDocumentMouseDown(event)
 
 	event.preventDefault();
 	
-	if (selectedObject >= 0)
+	if (selectedObjectIndex >= 0)
 	{
-		absorbedIndex = selectedObject;
+		absorbedIndex = selectedObjectIndex;
 		game_Objects[absorbedIndex].rotation.z += Math.PI * 0.5; // temporary debug action to see if mousebutton interaction is working
 		game_Objects[absorbedIndex].updateMatrixWorld(true); // required for writing to uniforms below
 
