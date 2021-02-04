@@ -13,8 +13,8 @@ uniform mat4 uObjInvMatrices[64];
 uniform vec4 uTopLevelAABBTree[256];
 uniform vec3 uSunDirection;
 uniform vec3 uViewRayTargetPosition;
-uniform float uSelectedTile;
-uniform float uSelectedObject;
+uniform float uSelectedTileIndex;
+uniform float uSelectedObjectIndex;
 
 #define INV_TEXTURE_WIDTH 0.00390625 // (1 / 256 texture width)
 
@@ -406,7 +406,7 @@ void SceneIntersect( Ray r, int bounces )
 		// else use vertex normals
 		triangleW = 1.0 - triangleU - triangleV;
 		intersec.normal = normalize(triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
-		intersec.color = (triangleID == uSelectedTile || triangleID == uSelectedTile + 8.0) ? vec3(0,2,1) : vd2.yzw;
+		intersec.color = (triangleID == uSelectedTileIndex || triangleID == uSelectedTileIndex + 8.0) ? vec3(0,2,1) : vd2.yzw;
 		intersec.type = DIFF;
 
 		hitPos = r.origin + r.direction * intersec.t;
@@ -532,7 +532,7 @@ void SceneIntersect( Ray r, int bounces )
 		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 3.0) 
 			continue; // don't want our view blocked by the inside of our robot's head and shoulders
 
-		objectIsSelected = uSelectedObject == currentBoxNode.data0.x;
+		objectIsSelected = uSelectedObjectIndex == currentBoxNode.data0.x;
 		Object_BVH_Intersect(rObj, mat3(invMatrix), model_id, objectIsSelected);
 
         } // end while (true)
