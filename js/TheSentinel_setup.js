@@ -42,7 +42,10 @@ let levelCounter = -1;
 let upVector = new THREE.Vector3(0, 1, 0);
 let modelScale = 10.0;
 let scaleFactor = 0.9;
-let MaxUnitsOfEnergy = 64;
+let MAX_UNITS_OF_ENERGY = 64;
+let levelPlacementUnitsAvailable = 0;
+let STARTING_PLAYER_UNITS_OF_ENERGY = 10;
+let playerUnitsOfEnergy = 0;
 let materialNumber = 0;
 let buildnodesLength = 0;
 
@@ -78,7 +81,7 @@ let PEDESTAL_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * PEDESTAL_MODEL_ID);
 let SENTINEL_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * SENTINEL_MODEL_ID);
 let MEANIE_TEXTURE_OFFSET = Math.floor(256 * 256 * 4 * MEANIE_MODEL_ID);
 
-let gameObjectCount = 0;
+let gameObjectIndex = -1;
 let numOfSentries = 0;
 let game_Objects = [];
 let gameObject_boundingBoxes = [];
@@ -379,7 +382,7 @@ function initSceneData()
 
 
 	// GAME OBJECTS (THREE.Object3Ds), their Bounding Boxes (THREE.Box3s) and their Inverse Matrices (THREE.Matrix4s)
-	for (let i = 0; i < 64; i++) // 64 = max object inverse matrices
+	for (let i = 0; i < MAX_UNITS_OF_ENERGY; i++) // 64 = max object inverse matrices
 	{
 		game_Objects[i] = new THREE.Object3D(); // contains useful info like position, rotation, etc.
 		game_Objects[i].visible = false; // these game_Objects are just mathematical placeholders, not to be rendered
@@ -1849,25 +1852,32 @@ function buildNewLevel()
 
 function populateLevel()
 {
+	playerUnitsOfEnergy = STARTING_PLAYER_UNITS_OF_ENERGY; // 10
+
 	// clear out game object rotations
-	for (let i = 0; i < 64; i++)
+	for (let i = 0; i < MAX_UNITS_OF_ENERGY; i++)
 	{
 		game_Objects[i].rotation.set(0, 0, 0);
 	}
 
 	numOfSentries = 2;
-	MaxUnitsOfEnergy = 64;
+
+	levelPlacementUnitsAvailable = MAX_UNITS_OF_ENERGY; // 64
 	// Starting Player Robot Energy Inventory: 10 units (3 robots and 1 tree)
 	// Sentinel: 4 units
 	// sentries(if any): 3 units each
-	// boulders(none at start of levels): 2 units each
-	// meanies(none at start of levels): 1 unit each (converted from a tree)
-	// trees: 1 unit each
+	// robots (created by player): 3 units each
+	// boulders(none at start of levels, used/created by player): 2 units each
+	// meanies(none at start of levels): 1 unit each (converted/made from a tree by Sentinel/sentries)
+	// trees: 1 unit each (randomly placed at level start, used/created by player and Sentinel/sentries)
 
-	// Starting Player Robot: +9 units max if converted to trees, Sentinel: +3 units max if converted to trees, Sentries: +2 units max each (if any)
-	MaxUnitsOfEnergy -= 12; // 9 + 3 reserved for extra tree objects if Starting Robot or Sentinel are converted to trees
-	MaxUnitsOfEnergy -= (2 * numOfSentries); // 2 * numOfSentries (if any) for extra tree objects if each sentry is converted to trees
-	gameObjectCount = 0;
+	// Starting Player Robot: +9 units more if converted to trees, Sentinel: +3 units more if converted to trees, Sentries: +2 units more each (if any)
+	levelPlacementUnitsAvailable -= 12; // 9 + 3 reserved for extra tree objects if Starting Robot or Sentinel are converted to trees
+	levelPlacementUnitsAvailable -= (2 * numOfSentries); // 2 * numOfSentries (if any) for extra tree objects if each sentry were to be converted to trees
+	levelPlacementUnitsAvailable -= 1; // reserved spot - must always render player's robot, even if the robot has no energy units left
+	levelPlacementUnitsAvailable -= 1; // reserved spot - must always render the Sentinel's pedestal, it cannot be absorbed
+	
+	gameObjectIndex = -1;
 
 	highestLevel = -Infinity; // initialize to lowest possible
 	lowestLevel = Infinity; // initialize to highest possible
@@ -1895,26 +1905,26 @@ function populateLevel()
 			tileIndex = i * numTiles + j;
 			if (tiles[tileIndex].level == highestLevel)
 			{
-				vertexIndex = (i * numTiles * 18) + (j * 18);
-				game_Objects[gameObjectCount].tag = "PEDESTAL_MODEL_ID";
-				game_Objects[gameObjectCount].tileIndex = tileIndex;
-				tiles[tileIndex].occupied = 'pedestal';
-				tiles[tileIndex].occupiedIndex = gameObjectCount;
+				gameObjectIndex++;
 
-				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+				vertexIndex = (i * numTiles * 18) + (j * 18);
+				game_Objects[gameObjectIndex].tag = "PEDESTAL_MODEL_ID";
+				game_Objects[gameObjectIndex].tileIndex = tileIndex;
+				tiles[tileIndex].occupied = 'pedestal';
+				tiles[tileIndex].occupiedIndex = gameObjectIndex;
+
+				game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
 					landscape_vpa[vertexIndex + 1] + 9,
 					landscape_vpa[vertexIndex + 2] + 5);
 
-				gameObjectCount++;
+				gameObjectIndex++;
 
-				game_Objects[gameObjectCount].tag = "SENTINEL_MODEL_ID";
+				game_Objects[gameObjectIndex].tag = "SENTINEL_MODEL_ID";
 				///tiles[tileIndex].occupied = 'sentinel';
-				game_Objects[gameObjectCount].tileIndex = tileIndex;
-				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+				game_Objects[gameObjectIndex].tileIndex = tileIndex;
+				game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
 					landscape_vpa[vertexIndex + 1] + 19,
 					landscape_vpa[vertexIndex + 2] + 5);
-				
-				gameObjectCount++;
 				
 				i = j = numTiles; // exit both loops
 			}
@@ -1922,7 +1932,7 @@ function populateLevel()
 	} // end for (let i = 0; i < numTiles; i++)
 	
 	randomThreshold = 0;
-	while (gameObjectCount < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
+	while (gameObjectIndex < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
 	{
 		randomThreshold += 0.00001;
 		// place the sentries on the next highest available levels below the head Sentinel's top level
@@ -1930,29 +1940,28 @@ function populateLevel()
 		{
 			for (let j = 0; j < numTiles; j++)
 			{
-				
-				if (gameObjectCount < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
+				if (gameObjectIndex < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
 				{
 					tileIndex = i * numTiles + j;
 					if ( tiles[tileIndex].occupied == "" && tiles[tileIndex].level > 0 && Math.random() < randomThreshold )
 					{
+						gameObjectIndex++;
+
 						vertexIndex = (i * numTiles * 18) + (j * 18);
-						game_Objects[gameObjectCount].tag = "SENTRY_MODEL_ID";
-						game_Objects[gameObjectCount].tileIndex = tileIndex;
+						game_Objects[gameObjectIndex].tag = "SENTRY_MODEL_ID";
+						game_Objects[gameObjectIndex].tileIndex = tileIndex;
 						tiles[tileIndex].occupied = 'sentry';
-						tiles[tileIndex].occupiedIndex = gameObjectCount;
+						tiles[tileIndex].occupiedIndex = gameObjectIndex;
 
-						game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+						game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
 							landscape_vpa[vertexIndex + 1] + 9,
-							landscape_vpa[vertexIndex + 2] + 5);
-
-						gameObjectCount++;	
+							landscape_vpa[vertexIndex + 2] + 5);		
 					}
 				}
 				else i = j = numTiles; // exit both loops
 			} // end for (let j = 0; j < numTiles; j++)
 		} // end for (let i = 0; i < numTiles; i++)
-	} //end while (gameObjectCount < numOfSentries + 2)
+	} //end while (gameObjectIndex < numOfSentries + 2)
 
 
 	// place the player's initial robot on the lowest level
@@ -1988,18 +1997,18 @@ function populateLevel()
 			}
 			if (okToPlaceRobot)
 			{
-				vertexIndex = (i * numTiles * 18) + (j * 18);
-				game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
-				game_Objects[gameObjectCount].tileIndex = tileIndex;
-				tiles[tileIndex].occupied = 'playerRobot';
-				tiles[tileIndex].occupiedIndex = gameObjectCount;
-				playerRobotIndex = gameObjectCount; // record player's robot Object3D array index
+				gameObjectIndex++;
 
-				game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+				vertexIndex = (i * numTiles * 18) + (j * 18);
+				game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+				game_Objects[gameObjectIndex].tileIndex = tileIndex;
+				tiles[tileIndex].occupied = 'playerRobot';
+				tiles[tileIndex].occupiedIndex = gameObjectIndex;
+				playerRobotIndex = gameObjectIndex; // record player's robot Object3D array index
+
+				game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
 					landscape_vpa[vertexIndex + 1] + 9,
 					landscape_vpa[vertexIndex + 2] + 5);
-
-				gameObjectCount++;
 
 				i = j = numTiles; // exit both loops
 			}
@@ -2017,18 +2026,18 @@ function populateLevel()
 				
 				if (tiles[tileIndex].level == lowestLevel + 10)
 				{
-					vertexIndex = (i * numTiles * 18) + (j * 18);
-					game_Objects[gameObjectCount].tag = "ROBOT_MODEL_ID";
-					game_Objects[gameObjectCount].tileIndex = tileIndex;
-					tiles[tileIndex].occupied = 'playerRobot';
-					tiles[tileIndex].occupiedIndex = gameObjectCount;
-					playerRobotIndex = gameObjectCount; // record player's robot Object3D array index
+					gameObjectIndex++;
 
-					game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+					vertexIndex = (i * numTiles * 18) + (j * 18);
+					game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+					game_Objects[gameObjectIndex].tileIndex = tileIndex;
+					tiles[tileIndex].occupied = 'playerRobot';
+					tiles[tileIndex].occupiedIndex = gameObjectIndex;
+					playerRobotIndex = gameObjectIndex; // record player's robot Object3D array index
+
+					game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
 						landscape_vpa[vertexIndex + 1] + 9,
 						landscape_vpa[vertexIndex + 2] + 5);
-
-					gameObjectCount++;
 
 					i = j = numTiles; // exit both loops
 				}
@@ -2037,9 +2046,9 @@ function populateLevel()
 	} // end if (!okToPlaceRobot)
 	
 
-	// finally fill up the remaining landscape's maxUnitsOfEnergy with trees (worth 1 energy unit each)
+	// finally fill up the remaining landscape's levelPlacementUnitsAvailable with trees (worth 1 energy unit each)
 	randomThreshold = 0;
-	while (gameObjectCount < MaxUnitsOfEnergy)
+	while (gameObjectIndex < levelPlacementUnitsAvailable)
 	{
 		randomThreshold += 0.001;
 		for (let i = 0; i < numTiles; i++)
@@ -2053,31 +2062,30 @@ function populateLevel()
 					if (tiles[tileIndex].occupied == "" && tiles[tileIndex].level < highestLevel && Math.random() < randomThreshold)
 					{
 						vertexIndex = (i * numTiles * 18) + (j * 18);
-						if (gameObjectCount < MaxUnitsOfEnergy)
+						if (gameObjectIndex < levelPlacementUnitsAvailable)
 						{
-							game_Objects[gameObjectCount].tag = "TREE_MODEL_ID";
-							game_Objects[gameObjectCount].tileIndex = tileIndex;
-							tiles[tileIndex].occupied = 'tree';
-							tiles[tileIndex].occupiedIndex = gameObjectCount;
+							gameObjectIndex++;
 
-							game_Objects[gameObjectCount].position.set(landscape_vpa[vertexIndex + 0] + 5,
+							game_Objects[gameObjectIndex].tag = "TREE_MODEL_ID";
+							game_Objects[gameObjectIndex].tileIndex = tileIndex;
+							tiles[tileIndex].occupied = 'tree';
+							tiles[tileIndex].occupiedIndex = gameObjectIndex;
+
+							game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
 								landscape_vpa[vertexIndex + 1] + 9,
 								landscape_vpa[vertexIndex + 2] + 5);
-
-							gameObjectCount++;
 						}
 						else i = j = numTiles;
-						//else gameObjectCount = MaxUnitsOfEnergy;
 					}
 				}
 			} // end for (let j = 0; j < numTiles; j++)
 		} // end for (let i = 0; i < numTiles; i++)
 
-	} // end while (gameObjectCount < MaxUnitsOfEnergy)
+	} // end while (gameObjectIndex < levelPlacementUnitsAvailable)
 	
 
 
-	topLevel_total_number_of_objects = gameObjectCount;
+	topLevel_total_number_of_objects = gameObjectIndex + 1;
 	topLevel_totalWork = new Uint32Array(topLevel_total_number_of_objects);
 
 	for (let i = 0; i < topLevel_total_number_of_objects; i++)
@@ -2235,7 +2243,7 @@ function populateLevel()
 
 function updateTopLevel_BVH()
 {
-	topLevel_total_number_of_objects = gameObjectCount;
+	topLevel_total_number_of_objects = gameObjectIndex + 1;
 	topLevel_totalWork = new Uint32Array(topLevel_total_number_of_objects);
 
 	for (let i = 0; i < topLevel_total_number_of_objects; i++)
@@ -2538,11 +2546,11 @@ function updateVariablesAndUniforms()
 	if (inGame)
 		cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
 			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter game mode" + "<br>" +
-			"Press T: create Tree | B: create Boulder | R: create Robot | E: Enter another robot";
+			"Press T: create Tree | B: create Boulder | R: create Robot | E: Enter another robot" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
 	else
 		cameraInfoElement.innerHTML = "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
 			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter game mode" + "<br>" +
-			"Press T: create Tree | B: create Boulder | R: create Robot | E: Enter another robot";
+			"Press T: create Tree | B: create Boulder | R: create Robot | E: Enter another robot" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
 
 } // end function updateVariablesAndUniforms()
 
