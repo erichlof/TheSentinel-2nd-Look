@@ -44,7 +44,7 @@ let modelScale = 10.0;
 let scaleFactor = 0.9;
 let MAX_UNITS_OF_ENERGY = 64;
 let levelPlacementUnitsAvailable = 0;
-let STARTING_PLAYER_UNITS_OF_ENERGY = 10;
+let STARTING_PLAYER_UNITS_OF_ENERGY = 10; // 10
 let playerUnitsOfEnergy = 0;
 let materialNumber = 0;
 let buildnodesLength = 0;
@@ -504,7 +504,7 @@ function initSceneData()
 
 	planeGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-	// create tile objects(structs) to be filled in
+	// create tile objects(structs) to be filled in later
 	for (let i = 0; i < numTiles; i++)
 	{
 		for (let j = 0; j < numTiles; j++)
@@ -513,7 +513,8 @@ function initSceneData()
 				level: 0,
 				code: '',
 				occupied: '',
-				occupiedIndex: -10
+				occupiedIndex: -10,
+				stackedObjectIDs: []
 			});
 		}
 	}
@@ -1860,7 +1861,7 @@ function populateLevel()
 		game_Objects[i].rotation.set(0, 0, 0);
 	}
 
-	numOfSentries = 2;
+	numOfSentries = 2; // 0 for beginning players, increasing by 1 as the player passes more levels, max: 7 sentries
 
 	levelPlacementUnitsAvailable = MAX_UNITS_OF_ENERGY; // 64
 	// Starting Player Robot Energy Inventory: 10 units (3 robots and 1 tree)
@@ -1881,14 +1882,15 @@ function populateLevel()
 
 	highestLevel = -Infinity; // initialize to lowest possible
 	lowestLevel = Infinity; // initialize to highest possible
-	// record highest and lowest levels
+	// record highest and lowest levels after initializing/clearing the 'tiles' array's fields 
 	for (let i = 0; i < numTiles; i++)
 	{
 		for (let j = 0; j < numTiles; j++)
 		{
 			tileIndex = i * numTiles + j;
-			tiles[tileIndex].occupied = ''; // clear occupied fields
-			tiles[tileIndex].occupiedIndex = -10;
+			tiles[tileIndex].occupied = ''; // clear all 'occupied' fields
+			tiles[tileIndex].occupiedIndex = -10; // re-initialize all 'occupiedIndex' fields
+			tiles[tileIndex].stackedObjectIDs.length = 0; // clear all 'stackedObjectIDs' arrays
 
 			if (tiles[tileIndex].level > highestLevel)
 				highestLevel = tiles[tileIndex].level;
@@ -1932,7 +1934,7 @@ function populateLevel()
 	} // end for (let i = 0; i < numTiles; i++)
 	
 	randomThreshold = 0;
-	while (gameObjectIndex < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
+	while (gameObjectIndex < numOfSentries + 1) // + 1 is counting previously placed Sentinel
 	{
 		randomThreshold += 0.00001;
 		// place the sentries on the next highest available levels below the head Sentinel's top level
@@ -1940,7 +1942,7 @@ function populateLevel()
 		{
 			for (let j = 0; j < numTiles; j++)
 			{
-				if (gameObjectIndex < numOfSentries + 2) // + 2 is counting previously placed pedestal and Sentinel
+				if (gameObjectIndex < numOfSentries + 1) // + 1 is counting previously placed Sentinel
 				{
 					tileIndex = i * numTiles + j;
 					if ( tiles[tileIndex].occupied == "" && tiles[tileIndex].level > 0 && Math.random() < randomThreshold )
@@ -1961,7 +1963,7 @@ function populateLevel()
 				else i = j = numTiles; // exit both loops
 			} // end for (let j = 0; j < numTiles; j++)
 		} // end for (let i = 0; i < numTiles; i++)
-	} //end while (gameObjectIndex < numOfSentries + 2)
+	} //end while (gameObjectIndex < numOfSentries + 1)
 
 
 	// place the player's initial robot on the lowest level
@@ -2366,7 +2368,7 @@ function updateTopLevel_BVH()
 		topLevel_totalWork[i] = i;
 	} // end for (let i = 0; i < topLevel_total_number_of_objects; i++)
 
-	console.log("topLevel_objects count:" + topLevel_totalWork.length);
+	//console.log("topLevel_objects count:" + topLevel_totalWork.length);
 	BVH_Build_Iterative(topLevel_totalWork, topLevel_aabb_array);
 
 	for (let i = 0; i < 256; i++)
@@ -2545,12 +2547,12 @@ function updateVariablesAndUniforms()
 	// INFO
 	if (inGame)
 		cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter game mode" + "<br>" +
-			"Press T: create Tree | B: create Boulder | R: create Robot | E: Enter another robot" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
+			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
+			"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
 	else
 		cameraInfoElement.innerHTML = "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter game mode" + "<br>" +
-			"Press T: create Tree | B: create Boulder | R: create Robot | E: Enter another robot" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
+			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
+			"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
 
 } // end function updateVariablesAndUniforms()
 
