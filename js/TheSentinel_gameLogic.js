@@ -3,8 +3,8 @@ function doGameLogic()
         // get player Input
         if (keyboard.pressed('T') && canPressT && !keyboard.pressed('B') && !keyboard.pressed('R'))
         {
-                if (playerUnitsOfEnergy > 0 && tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped' &&
-                        tiles[raycastIndex].occupied == '')
+                if (playerUnitsOfEnergy > 0 && raycastIndex >= 0 && tiles[raycastIndex].code != 'connector' && 
+                        tiles[raycastIndex].code != 'flipped' && tiles[raycastIndex].occupied == '')
                 {
                         gameObjectIndex++;
 
@@ -28,6 +28,26 @@ function doGameLogic()
 
                         updateTopLevel_BVH();
                 }
+                else if (playerUnitsOfEnergy > 0 && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'BOULDER_MODEL_ID')
+                {
+                        gameObjectIndex++;
+
+                        game_Objects[gameObjectIndex].tag = "TREE_MODEL_ID";
+                        game_Objects[gameObjectIndex].tileIndex = game_Objects[selectedObjectIndex].tileIndex;
+                        tiles[game_Objects[gameObjectIndex].tileIndex].stackedObjectIDs.push(gameObjectIndex);
+
+                        game_Objects[gameObjectIndex].position.copy(game_Objects[selectedObjectIndex].position);
+                        game_Objects[gameObjectIndex].position.y += 11;
+
+                        game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
+                        game_Objects[gameObjectIndex].updateMatrixWorld(true);
+                        objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+                        objInvMatrices[gameObjectIndex].elements[15] = TREE_MODEL_ID;
+
+                        playerUnitsOfEnergy -= 1;
+
+                        updateTopLevel_BVH();
+                }
 
                 canPressT = false;
         }
@@ -38,8 +58,8 @@ function doGameLogic()
 
         if (keyboard.pressed('B') && canPressB && !keyboard.pressed('T') && !keyboard.pressed('R'))
         {
-                if (playerUnitsOfEnergy > 1 && tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped' &&
-                        tiles[raycastIndex].occupied == '')
+                if (playerUnitsOfEnergy > 1 && raycastIndex >= 0 && tiles[raycastIndex].code != 'connector' && 
+                        tiles[raycastIndex].code != 'flipped' && tiles[raycastIndex].occupied == '')
                 {
                         gameObjectIndex++;
 
@@ -49,6 +69,7 @@ function doGameLogic()
                         game_Objects[gameObjectIndex].tileIndex = raycastIndex;
                         tiles[raycastIndex].occupied = 'boulder';
                         tiles[raycastIndex].occupiedIndex = gameObjectIndex;
+                        tiles[raycastIndex].stackedObjectIDs.push(gameObjectIndex);
 
                         game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
                                 landscape_vpa[vertexIndex + 1] + 9,
@@ -64,6 +85,26 @@ function doGameLogic()
                         
                         updateTopLevel_BVH();
                 }
+                else if (playerUnitsOfEnergy > 1 && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'BOULDER_MODEL_ID')
+                {
+                        gameObjectIndex++;
+
+                        game_Objects[gameObjectIndex].tag = "BOULDER_MODEL_ID";
+                        game_Objects[gameObjectIndex].tileIndex = game_Objects[selectedObjectIndex].tileIndex;
+                        tiles[game_Objects[gameObjectIndex].tileIndex].stackedObjectIDs.push(gameObjectIndex);
+
+                        game_Objects[gameObjectIndex].position.copy(game_Objects[selectedObjectIndex].position);
+                        game_Objects[gameObjectIndex].position.y += 5;
+
+                        game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
+                        game_Objects[gameObjectIndex].updateMatrixWorld(true);
+                        objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+                        objInvMatrices[gameObjectIndex].elements[15] = BOULDER_MODEL_ID;
+
+                        playerUnitsOfEnergy -= 2;
+
+                        updateTopLevel_BVH();
+                }
 
                 canPressB = false;
         }
@@ -74,8 +115,8 @@ function doGameLogic()
 
         if (keyboard.pressed('R') && canPressR && !keyboard.pressed('B') && !keyboard.pressed('T'))
         {
-                if (playerUnitsOfEnergy > 2 && tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped' &&
-                        tiles[raycastIndex].occupied == '')
+                if (playerUnitsOfEnergy > 2 && raycastIndex >= 0 && tiles[raycastIndex].code != 'connector' && 
+                        tiles[raycastIndex].code != 'flipped' && tiles[raycastIndex].occupied == '')
                 {
                         gameObjectIndex++;
 
@@ -100,6 +141,26 @@ function doGameLogic()
 
                         playerUnitsOfEnergy -= 3;
                         
+                        updateTopLevel_BVH();
+                }
+                else if (playerUnitsOfEnergy > 2 && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'BOULDER_MODEL_ID')
+                {
+                        gameObjectIndex++;
+
+                        game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+                        game_Objects[gameObjectIndex].tileIndex = game_Objects[selectedObjectIndex].tileIndex;
+                        tiles[game_Objects[gameObjectIndex].tileIndex].stackedObjectIDs.push(gameObjectIndex);
+
+                        game_Objects[gameObjectIndex].position.copy(game_Objects[selectedObjectIndex].position);
+                        game_Objects[gameObjectIndex].position.y += 7;
+
+                        game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
+                        game_Objects[gameObjectIndex].updateMatrixWorld(true);
+                        objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+                        objInvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
+
+                        playerUnitsOfEnergy -= 3;
+
                         updateTopLevel_BVH();
                 }
 
@@ -167,8 +228,7 @@ function doGameLogic()
 
         for (let i = 0; i <= gameObjectIndex; i++)
         {
-                if (i == playerRobotIndex || (game_Objects[i].tag != 'ROBOT_MODEL_ID' && game_Objects[i].tag != 'BOULDER_MODEL_ID') )// &&
-		   //game_Objects[i].tag != 'TREE_MODEL_ID' && tiles[ game_Objects[i].tileIndex ].level <= tiles[ game_Objects[playerRobotIndex].tileIndex ].level) )
+                if (i == playerRobotIndex)
                         continue;
 
                 if (raycaster.ray.intersectBox(gameObject_boundingBoxes[i], hitPoint) != null)
@@ -189,13 +249,26 @@ function doGameLogic()
                 viewRayTargetPosition.copy(closestHitPoint);
                 focusDistance = closestT; 
         }
+
+        if (selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'TREE_MODEL_ID' &&
+                selectedObjectIndex != tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs[tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length - 1])
+        {
+                selectedObjectIndex = -10;
+        }
 	
 	// check if the selected object (except boulder or robot) is on a different level than us - if so, disregard
 	if (selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag != 'BOULDER_MODEL_ID' && game_Objects[selectedObjectIndex].tag != 'ROBOT_MODEL_ID')
 	{
+                if (tiles[game_Objects[selectedObjectIndex].tileIndex].level > tiles[game_Objects[playerRobotIndex].tileIndex].level && 
+                        selectedObjectIndex != tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs[tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length - 1])
 		selectedObjectIndex = -10;
 	}
-	
+        // if boulder was selected, check if the selected boulder is the top of its stack. If not, disregard
+        if (selectedObjectIndex >= 0 && tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length > 1 &&
+                selectedObjectIndex != tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs[ tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length - 1 ])
+	{
+                selectedObjectIndex = -10;
+        }
 
         // raycast landscape terrain
         intersectArray.length = 0;
@@ -205,14 +278,12 @@ function doGameLogic()
         if (intersectArray.length > 0 && intersectArray[0].distance < closestT)
         {
                 raycastIndex = Math.floor(intersectArray[0].face.a / 6);
-
                 selectedObjectIndex = tiles[raycastIndex].occupiedIndex;
-                if (selectedObjectIndex == playerRobotIndex)
+                if (tiles[raycastIndex].stackedObjectIDs.length > 1 || selectedObjectIndex == playerRobotIndex)
                         selectedObjectIndex = -10;
 
                 if (tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped')
-                {
-                        
+                {  
                         if (Math.cos(blinkAngle % (Math.PI * 2)) > 0)
                         {
                                 if (intersectArray[0].face.a % 6 > 0)
@@ -245,7 +316,7 @@ function onDocumentMouseDown(event)
 
         event.preventDefault();
         
-        // Absorption event
+        // Player has Absorbed an item
 
         // remove a gameObject from anywhere inside the array list. Starting at the selectObject index,
         // do a deep copy of each gameObject's higher neighbor element, essentially shortening the gameObject array by 1 element
@@ -264,16 +335,31 @@ function onDocumentMouseDown(event)
                 else if (game_Objects[selectedObjectIndex].tag == 'SENTINEL_MODEL_ID')
                         playerUnitsOfEnergy += 4;
 
-                tiles[game_Objects[selectedObjectIndex].tileIndex].occupied = '';
-                tiles[game_Objects[selectedObjectIndex].tileIndex].occupiedIndex = -10;
-
+                
+                if (tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length > 0)
+                        tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length -= 1;
+                
+                if (tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length == 0)
+                {
+                        tiles[game_Objects[selectedObjectIndex].tileIndex].occupied = '';
+                        tiles[game_Objects[selectedObjectIndex].tileIndex].occupiedIndex = -10;
+                }
+                
                 if (playerRobotIndex > selectedObjectIndex)
                         playerRobotIndex -= 1;
                 
                 for (let i = selectedObjectIndex; i < gameObjectIndex; i++)
                 {
-                        tiles[game_Objects[i + 1].tileIndex].occupiedIndex = i;
+                        if ((i + 1) == tiles[game_Objects[i + 1].tileIndex].occupiedIndex)
+                        {
+                                for (let j = 0; j < tiles[game_Objects[i + 1].tileIndex].stackedObjectIDs.length; j++)
+                                {
+                                        tiles[game_Objects[i + 1].tileIndex].stackedObjectIDs[j] -= 1;
+                                }
 
+                                tiles[game_Objects[i + 1].tileIndex].occupiedIndex -= 1;
+                        }
+                        
                         game_Objects[i].tag = game_Objects[i + 1].tag;
                         game_Objects[i].tileIndex = game_Objects[i + 1].tileIndex;
                         game_Objects[i].position.copy(game_Objects[i + 1].position);
