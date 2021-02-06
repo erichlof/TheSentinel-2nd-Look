@@ -12,15 +12,17 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 * Press ENTER to enter the player's starting Robot (this is where you would start each game level)
 * With a checkerboard tile selected, Press R to create another Robot
 * With that new robot selected (or its checkerboard tile selected), Press E to Enter that other robot
-* With a checkerboard tile selected, Press B to create a Boulder (a Base on which your other robots will stand: non-functional at the moment - W.I.P.)
+* With a checkerboard tile selected, Press B to create a Boulder (a Base on which more boulders or another robot can be stacked)
 * With a checkerboard tile selected, Press T to create a Tree
+* MouseClick to absorb an item.  Note: you must be able to see the checkerboard tile on which the item sits (will not work if the item is too high)
 
 <br><br>
 
 <h2>TODO</h2>
 
 * Make the Sentinel Game! lol - now that the rendering is mostly worked out, add the actual gameplay and game logic
-* Add ability to stack Boulders(Bases) on top of each other, and your newly created Robots on top of those
+* Make head Sentinel and her lower sentries slowly rotate while scanning the landscape for items with energy levels above natural trees - that includes you!
+* Still tweaking Item selection highlighting mechanics - when it should occur, and when it should pass through (i.e. trees) 
 * Add special effects such as the cool pixel dissolve when an item/player is absorbed
 * Add simple GUI showing player assets as well as player visibility to The Sentinel and lower Sentries
 * Add the classic original sound effects and short recurring melodic theme
