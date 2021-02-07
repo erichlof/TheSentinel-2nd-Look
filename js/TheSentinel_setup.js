@@ -198,6 +198,7 @@ let testD = Infinity;
 let closestT = Infinity;
 let selectedObjectIndex = -10.0;
 let raycastIndex = 0;
+let testIndex = 0;
 let viewRayTargetPosition = new THREE.Vector3();
 let selectedTileIndex = -10.0;
 let blinkAngle = 0.0;
@@ -386,7 +387,8 @@ function initSceneData()
 	{
 		game_Objects[i] = new THREE.Object3D(); // contains useful info like position, rotation, etc.
 		game_Objects[i].visible = false; // these game_Objects are just mathematical placeholders, not to be rendered
-		game_Objects[i].tag = ""; // custom property added 
+		game_Objects[i].tag = ""; // custom property added
+		game_Objects[i].level = -Infinity; // custom property added
 		game_Objects[i].tileIndex = -10; // custom property added
 
 		// store these game objects' bounding boxes for raycasting against and collision detection
@@ -1911,21 +1913,23 @@ function populateLevel()
 
 				vertexIndex = (i * numTiles * 18) + (j * 18);
 				game_Objects[gameObjectIndex].tag = "PEDESTAL_MODEL_ID";
+				game_Objects[gameObjectIndex].level = tiles[tileIndex].level + 10; // pedestal level is higher
 				game_Objects[gameObjectIndex].tileIndex = tileIndex;
 				tiles[tileIndex].occupied = 'pedestal';
 				tiles[tileIndex].occupiedIndex = gameObjectIndex;
 
 				game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-					landscape_vpa[vertexIndex + 1] + 9,
+					landscape_vpa[vertexIndex + 1] + 0,
 					landscape_vpa[vertexIndex + 2] + 5);
 
 				gameObjectIndex++;
 
 				game_Objects[gameObjectIndex].tag = "SENTINEL_MODEL_ID";
 				///tiles[tileIndex].occupied = 'sentinel';
+				game_Objects[gameObjectIndex].level = tiles[tileIndex].level + 10; // on top of higher pedestal
 				game_Objects[gameObjectIndex].tileIndex = tileIndex;
 				game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-					landscape_vpa[vertexIndex + 1] + 19,
+					landscape_vpa[vertexIndex + 1] + 0,
 					landscape_vpa[vertexIndex + 2] + 5);
 				
 				i = j = numTiles; // exit both loops
@@ -1951,12 +1955,13 @@ function populateLevel()
 
 						vertexIndex = (i * numTiles * 18) + (j * 18);
 						game_Objects[gameObjectIndex].tag = "SENTRY_MODEL_ID";
+						game_Objects[gameObjectIndex].level = tiles[tileIndex].level;
 						game_Objects[gameObjectIndex].tileIndex = tileIndex;
 						tiles[tileIndex].occupied = 'sentry';
 						tiles[tileIndex].occupiedIndex = gameObjectIndex;
 
 						game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-							landscape_vpa[vertexIndex + 1] + 9,
+							landscape_vpa[vertexIndex + 1] + 0,
 							landscape_vpa[vertexIndex + 2] + 5);		
 					}
 				}
@@ -2003,13 +2008,14 @@ function populateLevel()
 
 				vertexIndex = (i * numTiles * 18) + (j * 18);
 				game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+				game_Objects[gameObjectIndex].level = tiles[tileIndex].level;
 				game_Objects[gameObjectIndex].tileIndex = tileIndex;
 				tiles[tileIndex].occupied = 'playerRobot';
 				tiles[tileIndex].occupiedIndex = gameObjectIndex;
 				playerRobotIndex = gameObjectIndex; // record player's robot Object3D array index
 
 				game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-					landscape_vpa[vertexIndex + 1] + 9,
+					landscape_vpa[vertexIndex + 1] + 0,
 					landscape_vpa[vertexIndex + 2] + 5);
 
 				i = j = numTiles; // exit both loops
@@ -2032,13 +2038,14 @@ function populateLevel()
 
 					vertexIndex = (i * numTiles * 18) + (j * 18);
 					game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+					game_Objects[gameObjectIndex].level = tiles[tileIndex].level;
 					game_Objects[gameObjectIndex].tileIndex = tileIndex;
 					tiles[tileIndex].occupied = 'playerRobot';
 					tiles[tileIndex].occupiedIndex = gameObjectIndex;
 					playerRobotIndex = gameObjectIndex; // record player's robot Object3D array index
 
 					game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-						landscape_vpa[vertexIndex + 1] + 9,
+						landscape_vpa[vertexIndex + 1] + 0,
 						landscape_vpa[vertexIndex + 2] + 5);
 
 					i = j = numTiles; // exit both loops
@@ -2069,12 +2076,13 @@ function populateLevel()
 							gameObjectIndex++;
 
 							game_Objects[gameObjectIndex].tag = "TREE_MODEL_ID";
+							game_Objects[gameObjectIndex].level = tiles[tileIndex].level;
 							game_Objects[gameObjectIndex].tileIndex = tileIndex;
 							tiles[tileIndex].occupied = 'tree';
 							tiles[tileIndex].occupiedIndex = gameObjectIndex;
 
 							game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-								landscape_vpa[vertexIndex + 1] + 9,
+								landscape_vpa[vertexIndex + 1] + 0,
 								landscape_vpa[vertexIndex + 2] + 5);
 						}
 						else i = j = numTiles;
@@ -2097,6 +2105,7 @@ function populateLevel()
 			current_model_id = TREE_MODEL_ID;
 			// create slightly larger axis-aligned bounding box for raytracing traversal of the topLevel gameObjects' AABBTree on the GPU.
 			// Use slightly larger boundingSphere radius so the object can rotate arbitrarily on any axis
+			game_Objects[i].position.y += 9;
 			boundingSphereRadius = tree_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
@@ -2113,7 +2122,7 @@ function populateLevel()
 		else if (game_Objects[i].tag == "BOULDER_MODEL_ID")
 		{
 			current_model_id = BOULDER_MODEL_ID;
-			game_Objects[i].position.y -= 6.5;
+			game_Objects[i].position.y += 2.5;
 			boundingSphereRadius = boulder_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
@@ -2128,7 +2137,7 @@ function populateLevel()
 		else if (game_Objects[i].tag == "ROBOT_MODEL_ID")
 		{
 			current_model_id = ROBOT_MODEL_ID;
-			game_Objects[i].position.y -= 4.4;
+			game_Objects[i].position.y += 4.6;
 			boundingSphereRadius = robot_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
@@ -2143,7 +2152,7 @@ function populateLevel()
 		else if (game_Objects[i].tag == "SENTRY_MODEL_ID")
 		{
 			current_model_id = SENTRY_MODEL_ID;
-			game_Objects[i].position.y -= 4.4;
+			game_Objects[i].position.y += 4.6;
 			boundingSphereRadius = sentry_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
@@ -2158,7 +2167,7 @@ function populateLevel()
 		else if (game_Objects[i].tag == "PEDESTAL_MODEL_ID")
 		{
 			current_model_id = PEDESTAL_MODEL_ID;
-			game_Objects[i].position.y -= 4.1;
+			game_Objects[i].position.y += 5;
 			boundingSphereRadius = pedestal_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
@@ -2173,7 +2182,7 @@ function populateLevel()
 		else if (game_Objects[i].tag == "SENTINEL_MODEL_ID")
 		{
 			current_model_id = SENTINEL_MODEL_ID;
-			game_Objects[i].position.y -= 3.3;
+			game_Objects[i].position.y += 15.9;
 			boundingSphereRadius = sentinel_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
@@ -2188,7 +2197,7 @@ function populateLevel()
 		else if (game_Objects[i].tag == "MEANIE_MODEL_ID")
 		{
 			current_model_id = MEANIE_MODEL_ID;
-			game_Objects[i].position.y -= 4.4;
+			game_Objects[i].position.y += 4.6;
 			boundingSphereRadius = meanie_modelMesh.geometry.boundingSphere.radius;
 			bounding_box_min.set(boundingSphereRadius, boundingSphereRadius, boundingSphereRadius);
 			bounding_box_min.multiplyScalar(-modelScale);
