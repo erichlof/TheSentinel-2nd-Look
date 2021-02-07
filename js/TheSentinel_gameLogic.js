@@ -11,13 +11,15 @@ function doGameLogic()
                         vertexIndex = raycastIndex * 18;
 
                         game_Objects[gameObjectIndex].tag = "TREE_MODEL_ID";
+                        game_Objects[gameObjectIndex].level = tiles[raycastIndex].level;
                         game_Objects[gameObjectIndex].tileIndex = raycastIndex;
                         tiles[raycastIndex].occupied = 'tree';
                         tiles[raycastIndex].occupiedIndex = gameObjectIndex;
 
                         game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-                                landscape_vpa[vertexIndex + 1] + 9,
+                                landscape_vpa[vertexIndex + 1] + 0,
                                 landscape_vpa[vertexIndex + 2] + 5);
+                        game_Objects[gameObjectIndex].position.y += 9;
 
                         game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
                         game_Objects[gameObjectIndex].updateMatrixWorld(true);
@@ -33,11 +35,12 @@ function doGameLogic()
                         gameObjectIndex++;
 
                         game_Objects[gameObjectIndex].tag = "TREE_MODEL_ID";
+                        game_Objects[gameObjectIndex].level = game_Objects[selectedObjectIndex].level + 5; // stacked on top of a boulder
                         game_Objects[gameObjectIndex].tileIndex = game_Objects[selectedObjectIndex].tileIndex;
                         tiles[game_Objects[gameObjectIndex].tileIndex].stackedObjectIDs.push(gameObjectIndex);
 
                         game_Objects[gameObjectIndex].position.copy(game_Objects[selectedObjectIndex].position);
-                        game_Objects[gameObjectIndex].position.y += 11;
+                        game_Objects[gameObjectIndex].position.y = game_Objects[gameObjectIndex].level + 9;
 
                         game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
                         game_Objects[gameObjectIndex].updateMatrixWorld(true);
@@ -66,15 +69,16 @@ function doGameLogic()
                         vertexIndex = raycastIndex * 18;
 
                         game_Objects[gameObjectIndex].tag = "BOULDER_MODEL_ID";
+                        game_Objects[gameObjectIndex].level = tiles[raycastIndex].level;
                         game_Objects[gameObjectIndex].tileIndex = raycastIndex;
                         tiles[raycastIndex].occupied = 'boulder';
                         tiles[raycastIndex].occupiedIndex = gameObjectIndex;
                         tiles[raycastIndex].stackedObjectIDs.push(gameObjectIndex);
 
                         game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-                                landscape_vpa[vertexIndex + 1] + 9,
+                                landscape_vpa[vertexIndex + 1] + 0,
                                 landscape_vpa[vertexIndex + 2] + 5);
-                        game_Objects[gameObjectIndex].position.y -= 6.5;
+                        game_Objects[gameObjectIndex].position.y += 2.5;
 
                         game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
                         game_Objects[gameObjectIndex].updateMatrixWorld(true);
@@ -90,11 +94,13 @@ function doGameLogic()
                         gameObjectIndex++;
 
                         game_Objects[gameObjectIndex].tag = "BOULDER_MODEL_ID";
+                        game_Objects[gameObjectIndex].level = game_Objects[selectedObjectIndex].level + 5; // stacked on top of another boulder
                         game_Objects[gameObjectIndex].tileIndex = game_Objects[selectedObjectIndex].tileIndex;
                         tiles[game_Objects[gameObjectIndex].tileIndex].stackedObjectIDs.push(gameObjectIndex);
 
                         game_Objects[gameObjectIndex].position.copy(game_Objects[selectedObjectIndex].position);
-                        game_Objects[gameObjectIndex].position.y += 5;
+                        game_Objects[gameObjectIndex].position.y = game_Objects[gameObjectIndex].level;
+                        game_Objects[gameObjectIndex].position.y += 2.5;
 
                         game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
                         game_Objects[gameObjectIndex].updateMatrixWorld(true);
@@ -123,14 +129,15 @@ function doGameLogic()
                         vertexIndex = raycastIndex * 18;
 
                         game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+                        game_Objects[gameObjectIndex].level = tiles[raycastIndex].level;
                         game_Objects[gameObjectIndex].tileIndex = raycastIndex;
                         tiles[raycastIndex].occupied = 'robot';
                         tiles[raycastIndex].occupiedIndex = gameObjectIndex;
 
                         game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
-                                landscape_vpa[vertexIndex + 1] + 9,
+                                landscape_vpa[vertexIndex + 1] + 0,
                                 landscape_vpa[vertexIndex + 2] + 5);
-                        game_Objects[gameObjectIndex].position.y -= 4.4;
+                        game_Objects[gameObjectIndex].position.y += 4.6;
 
                         game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
 
@@ -148,11 +155,13 @@ function doGameLogic()
                         gameObjectIndex++;
 
                         game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+                        game_Objects[gameObjectIndex].level = game_Objects[selectedObjectIndex].level + 5; // stacked on top of a boulder
                         game_Objects[gameObjectIndex].tileIndex = game_Objects[selectedObjectIndex].tileIndex;
                         tiles[game_Objects[gameObjectIndex].tileIndex].stackedObjectIDs.push(gameObjectIndex);
 
                         game_Objects[gameObjectIndex].position.copy(game_Objects[selectedObjectIndex].position);
-                        game_Objects[gameObjectIndex].position.y += 7;
+                        game_Objects[gameObjectIndex].position.y = game_Objects[gameObjectIndex].level;
+                        game_Objects[gameObjectIndex].position.y += 4.6;
 
                         game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
                         game_Objects[gameObjectIndex].updateMatrixWorld(true);
@@ -230,6 +239,8 @@ function doGameLogic()
         {
                 if (i == playerRobotIndex)
                         continue;
+		if (game_Objects[i].tag == 'TREE_MODEL_ID' && game_Objects[i].level < game_Objects[playerRobotIndex].level)
+			continue;
 
                 if (raycaster.ray.intersectBox(gameObject_boundingBoxes[i], hitPoint) != null)
                 {
@@ -250,25 +261,25 @@ function doGameLogic()
                 focusDistance = closestT; 
         }
 
-        if (selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'TREE_MODEL_ID' &&
-                selectedObjectIndex != tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs[tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length - 1])
+        if (selectedObjectIndex >= 0)
         {
-                selectedObjectIndex = -10;
-        }
-	
-	// check if the selected object (except boulder or robot) is on a different level than us - if so, disregard
-	if (selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag != 'BOULDER_MODEL_ID' && game_Objects[selectedObjectIndex].tag != 'ROBOT_MODEL_ID')
-	{
-                if (tiles[game_Objects[selectedObjectIndex].tileIndex].level > tiles[game_Objects[playerRobotIndex].tileIndex].level && 
-                        selectedObjectIndex != tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs[tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length - 1])
-		selectedObjectIndex = -10;
-	}
-        // if boulder was selected, check if the selected boulder is the top of its stack. If not, disregard
-        if (selectedObjectIndex >= 0 && tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length > 1 &&
-                selectedObjectIndex != tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs[ tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length - 1 ])
-	{
-                selectedObjectIndex = -10;
-        }
+		testIndex = game_Objects[selectedObjectIndex].tileIndex;
+
+		// check if the selected object (except boulder or robot) is on a different level than us - if so, disregard highlighting selection
+		if (game_Objects[selectedObjectIndex].tag != 'BOULDER_MODEL_ID' && game_Objects[selectedObjectIndex].tag != 'ROBOT_MODEL_ID')
+		{
+			if (game_Objects[selectedObjectIndex].level >= game_Objects[playerRobotIndex].level )
+				selectedObjectIndex = -10;
+		}
+		// if boulder was selected, check if the selected boulder is the top of its stack. If not, disregard selection
+		if (tiles[testIndex].stackedObjectIDs.length > 1 &&
+			selectedObjectIndex != tiles[testIndex].stackedObjectIDs[tiles[testIndex].stackedObjectIDs.length - 1])
+		{
+			selectedObjectIndex = -10;
+		}
+	} // end if (selectedObjectIndex >= 0)
+
+        
 
         // raycast landscape terrain
         intersectArray.length = 0;
@@ -335,14 +346,15 @@ function onDocumentMouseDown(event)
                 else if (game_Objects[selectedObjectIndex].tag == 'SENTINEL_MODEL_ID')
                         playerUnitsOfEnergy += 4;
 
+		testIndex = game_Objects[selectedObjectIndex].tileIndex;
                 
-                if (tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length > 0)
-                        tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length -= 1;
+                if (tiles[testIndex].stackedObjectIDs.length > 0)
+                        tiles[testIndex].stackedObjectIDs.length -= 1;
                 
-                if (tiles[game_Objects[selectedObjectIndex].tileIndex].stackedObjectIDs.length == 0)
+                if (tiles[testIndex].stackedObjectIDs.length == 0)
                 {
-                        tiles[game_Objects[selectedObjectIndex].tileIndex].occupied = '';
-                        tiles[game_Objects[selectedObjectIndex].tileIndex].occupiedIndex = -10;
+                        tiles[testIndex].occupied = '';
+                        tiles[testIndex].occupiedIndex = -10;
                 }
                 
                 if (playerRobotIndex > selectedObjectIndex)
@@ -361,6 +373,7 @@ function onDocumentMouseDown(event)
                         }
                         
                         game_Objects[i].tag = game_Objects[i + 1].tag;
+                        game_Objects[i].level = game_Objects[i + 1].level;
                         game_Objects[i].tileIndex = game_Objects[i + 1].tileIndex;
                         game_Objects[i].position.copy(game_Objects[i + 1].position);
                         game_Objects[i].rotation.copy(game_Objects[i + 1].rotation);
