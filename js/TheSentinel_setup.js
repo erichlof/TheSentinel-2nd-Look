@@ -199,6 +199,8 @@ let closestT = Infinity;
 let selectedObjectIndex = -10.0;
 let raycastIndex = 0;
 let testIndex = 0;
+let selectionIsValid = false;
+let sentinelAbsorbed = false;
 let viewRayTargetPosition = new THREE.Vector3();
 let selectedTileIndex = -10.0;
 let blinkAngle = 0.0;
@@ -515,8 +517,7 @@ function initSceneData()
 				level: 0,
 				code: '',
 				occupied: '',
-				occupiedIndex: -10,
-				stackedObjectIDs: []
+				occupiedIndex: -10
 			});
 		}
 	}
@@ -1856,7 +1857,7 @@ function buildNewLevel()
 function populateLevel()
 {
 	playerUnitsOfEnergy = STARTING_PLAYER_UNITS_OF_ENERGY; // 10
-
+	sentinelAbsorbed = false;
 	// clear out game object rotations
 	for (let i = 0; i < MAX_UNITS_OF_ENERGY; i++)
 	{
@@ -1892,7 +1893,6 @@ function populateLevel()
 			tileIndex = i * numTiles + j;
 			tiles[tileIndex].occupied = ''; // clear all 'occupied' fields
 			tiles[tileIndex].occupiedIndex = -10; // re-initialize all 'occupiedIndex' fields
-			tiles[tileIndex].stackedObjectIDs.length = 0; // clear all 'stackedObjectIDs' arrays
 
 			if (tiles[tileIndex].level > highestLevel)
 				highestLevel = tiles[tileIndex].level;
@@ -2401,7 +2401,7 @@ function updateVariablesAndUniforms()
 			inGame = true;
 
 			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
-			cameraControlsObject.position.y += 4;
+			cameraControlsObject.position.y += 3;
 			
 			cameraControlsYawObject.rotation.set(0, 0, 0);
 			cameraControlsPitchObject.rotation.set(0, 0, 0);
