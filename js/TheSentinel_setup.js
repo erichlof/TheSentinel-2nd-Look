@@ -2023,6 +2023,7 @@ function populateLevel()
 		} // end for (let j = 0; j < numTiles; j++)
 	} // end for (let i = 0; i < numTiles; i++)
 
+
 	// if we failed to find a decent starting postion for player's Robot, try again with less restrictions
 	if (!okToPlaceRobot)
 	{
@@ -2033,6 +2034,29 @@ function populateLevel()
 				tileIndex = i * numTiles + j;
 				
 				if (tiles[tileIndex].level == lowestLevel + 10)
+				{// check surrounding tiles to see if any are playable, want to avoid starting player in 1 isolated square
+					if (i > 0)
+					{	//check North
+						if (tiles[(i - 1) * numTiles + j].level == lowestLevel + 10)
+							okToPlaceRobot = true;
+					}
+					if (i < numTiles - 1)
+					{	//check South
+						if (tiles[(i + 1) * numTiles + j].level == lowestLevel + 10)
+							okToPlaceRobot = true;
+					}
+					if (j > 0)
+					{	//check West
+						if (tiles[i * numTiles + (j - 1)].level == lowestLevel + 10)
+							okToPlaceRobot = true;
+					}
+					if (j < numTiles - 1)
+					{	//check East
+						if (tiles[i * numTiles + (j + 1)].level == lowestLevel + 10)
+							okToPlaceRobot = true;
+					}
+				}
+				if (okToPlaceRobot)
 				{
 					gameObjectIndex++;
 
@@ -2052,6 +2076,8 @@ function populateLevel()
 				}
 			} // end for (let j = 0; j < numTiles; j++)
 		} // end for (let i = 0; i < numTiles; i++)
+
+		//console.log("lowestLevel: " + lowestLevel + " playerStartingLevel: " + game_Objects[playerRobotIndex].level);
 	} // end if (!okToPlaceRobot)
 	
 
