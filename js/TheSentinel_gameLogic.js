@@ -168,6 +168,27 @@ function doGameLogic()
 
 			updateTopLevel_BVH();
 		}
+		else if (sentinelAbsorbed && playerUnitsOfEnergy > 2 && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'PEDESTAL_MODEL_ID')
+		{
+			gameObjectIndex++;
+
+			game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+			game_Objects[gameObjectIndex].level = game_Objects[selectedObjectIndex].level; // stacked on top of the Sentinel's pedestal
+			game_Objects[gameObjectIndex].tileIndex = game_Objects[selectedObjectIndex].tileIndex;
+
+			game_Objects[gameObjectIndex].position.copy(game_Objects[selectedObjectIndex].position);
+			game_Objects[gameObjectIndex].position.y = game_Objects[gameObjectIndex].level;
+			game_Objects[gameObjectIndex].position.y += 4.6;
+
+			game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
+			game_Objects[gameObjectIndex].updateMatrixWorld(true);
+			objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+			objInvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
+
+			playerUnitsOfEnergy -= 3;
+
+			updateTopLevel_BVH();
+		}
 
 		canPressR = false;
 	}
@@ -230,6 +251,7 @@ function doGameLogic()
 	testD = Infinity;
 	closestT = Infinity;
 	selectedObjectIndex = -10; // reset index
+	selectionIsValid = false; // reset flag
 
 	for (let i = 0; i <= gameObjectIndex; i++)
 	{
@@ -261,7 +283,7 @@ function doGameLogic()
 	{
 		testIndex = game_Objects[selectedObjectIndex].tileIndex;
 
-		selectionIsValid = false;
+		//selectionIsValid = false;
 
 		if (game_Objects[selectedObjectIndex].tag == 'ROBOT_MODEL_ID')
 		{
@@ -296,9 +318,19 @@ function doGameLogic()
 		else if (!sentinelAbsorbed && game_Objects[selectedObjectIndex].tag == 'PEDESTAL_MODEL_ID')
 		{
 			// normally the high Sentinel pedestal model is not selectable, but if we are high enough, Sentinel on top is
-			if (game_Objects[selectedObjectIndex].level <= game_Objects[playerRobotIndex].level + 5)
+			if (game_Objects[selectedObjectIndex].level <= game_Objects[playerRobotIndex].level + 5 &&
+				closestHitPoint.y >= game_Objects[selectedObjectIndex].position.y + 4)
 			{
 				selectedObjectIndex = 1; // 1 = SENTINEL object index
+				selectionIsValid = true;
+			}
+		}
+		else if (sentinelAbsorbed && game_Objects[selectedObjectIndex].tag == 'PEDESTAL_MODEL_ID')
+		{
+			// normally the high Sentinel pedestal model is not selectable, but if we are high enough, Sentinel on top is
+			if (game_Objects[selectedObjectIndex].level <= game_Objects[playerRobotIndex].level + 5 && 
+				closestHitPoint.y >= game_Objects[selectedObjectIndex].position.y + 4)
+			{
 				selectionIsValid = true;
 			}
 		}
@@ -307,20 +339,8 @@ function doGameLogic()
 		
 	} // end if (selectedObjectIndex >= 0)
 
-	if (selectedObjectIndex >= 0 && sentinelAbsorbed)
-	{
-		if (game_Objects[selectedObjectIndex].tag == 'PEDESTAL_MODEL_ID')
-		{
-			// normally the high Sentinel pedestal model is not selectable, but if we are high enough, Sentinel on top is
-			if (game_Objects[selectedObjectIndex].level <= game_Objects[playerRobotIndex].level + 5)
-			{
-				selectionIsValid = true;
-			}
-		}
-	}
-
 	if (!selectionIsValid)
-		selectedObjectIndex = -10; // turns off highlighting
+		selectedObjectIndex = -10; // turns off highlighting and disallows object selection
 
 	// raycast landscape terrain
 	intersectArray.length = 0;
