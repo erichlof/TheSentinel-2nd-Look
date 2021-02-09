@@ -9,20 +9,22 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 * Right/Left Arrows to open/close camera aperture (depth of field effect)
 * WASD,QZ to fly camera in Landscape selection mode (disabled when entering your Robot in game mode)
 * Press SPACEBAR to generate a new random landscape (cycles through 4 color themes)
-* Press ENTER to enter the player's starting Robot (this is where you would start each game level)
+* Press ENTER to enter the player's starting Robot (this is where you start each game level)
 * With a checkerboard tile selected, Press R to create another Robot
 * With that new robot selected (or its checkerboard tile selected), Press E to Enter that other robot
-* With a checkerboard tile selected, Press B to create a Boulder (a Base on which more boulders or another robot can be stacked)
+* With a checkerboard tile selected, Press B to create a Boulder (a base on which more Boulders or another Robot can be stacked)
 * With a checkerboard tile selected, Press T to create a Tree
 * MouseClick to absorb an item.  Note: game rules state that you must be able to see the checkerboard tile on which the item sits (will not work if the item is too high).  Does not apply to Boulder bases or player Robots - they can be clicked/absorbed from anywhere on the level.
+* Press H to Hyperspace to a new random tile location, at or below current player height - Warning: Hyperspacing costs 3 energy units!
+* If player energy drops below 0, the level is lost and the player restarts the same type of level
+* To Win a level, Press H to Hyperspace while standing on top of the Sentinel's pedestal (after you absorb her and place your robot where she was!)
 
 <br><br>
 
 <h2>TODO</h2>
 
 * Make the Sentinel Game! lol - now that the rendering is mostly worked out, add the actual gameplay and game logic
-* Make head Sentinel and her lower sentries slowly rotate while scanning the landscape for items with energy levels above natural trees - that includes you!
-* Add Hyperspace ability when player presses the H key - selects a random new player location either at the current height or lower (a last resort bail-out option)  
+* Make head Sentinel and her lower sentries slowly rotate while scanning the landscape for items with energy levels above natural trees - that includes you! 
 * Add special effects such as the cool pixel dissolve when an item/player is absorbed
 * Add simple GUI showing player assets as well as player visibility to The Sentinel and lower Sentries
 * Add the classic original sound effects and short recurring melodic theme
