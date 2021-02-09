@@ -168,8 +168,11 @@ function doGameLogic()
 
 			updateTopLevel_BVH();
 		}
-		else if (sentinelAbsorbed && playerUnitsOfEnergy > 2 && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'PEDESTAL_MODEL_ID')
+		else if (!winningRobotPlaced && sentinelAbsorbed && playerUnitsOfEnergy > 2 && selectedObjectIndex >= 0 && 
+				game_Objects[selectedObjectIndex].tag == 'PEDESTAL_MODEL_ID')
 		{
+			winningRobotPlaced = true;
+
 			gameObjectIndex++;
 
 			game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
@@ -231,6 +234,181 @@ function doGameLogic()
 		canPressE = true;
 	}
 
+	if (keyboard.pressed('H') && canPressH)
+	{
+		// if player robot is on top of Sentinel's pedestal - the winning endgame position
+		if (game_Objects[playerRobotIndex].tileIndex == game_Objects[0].tileIndex)
+		{
+			// player has conquered the level
+			console.log("DEBUG: Player has Won!");
+
+			useGenericInput = true;
+			inGame = false;
+			cameraControlsObject.position.set(0, 140, 450);
+			cameraControlsYawObject.rotation.set(0, 0, 0);
+			cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
+			apertureSize = 0.0;
+			pathTracingUniforms.uApertureSize.value = apertureSize;
+
+			buildNewLevel(true);
+			return;
+		}
+		// else if the player doesn't have enough energy to hyperspace
+		if (playerUnitsOfEnergy < 3)
+		{
+			// hyperspace costs 3 energy units, so player robot has negative energy
+			// player lost this level
+			console.log("DEBUG: Player has lost this level");
+
+			useGenericInput = true;
+			inGame = false;
+			cameraControlsObject.position.set(0, 140, 450);
+			cameraControlsYawObject.rotation.set(0, 0, 0);
+			cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
+			apertureSize = 0.0;
+			pathTracingUniforms.uApertureSize.value = apertureSize;
+
+			buildNewLevel(false);
+			return;
+		}
+
+		// else this is a normal Hyperspace to a random tile location
+
+		potentialPlacementTileIndeces.length = 0; // clear out array
+		// loop through all tiles to add potential tiles to a list to choose from for random robot placement
+		for (let i = 0; i < numTiles; i++)
+		{
+			for (let j = 0; j < numTiles; j++)
+			{
+				okToPlaceRobot = false;
+
+				tileIndex = i * numTiles + j;
+
+				if (tiles[tileIndex].level == -Infinity || tiles[tileIndex].occupied != "" ||
+					tiles[tileIndex].level > game_Objects[playerRobotIndex].level)
+					continue;
+
+				vertexIndex = tileIndex * 18;
+				
+				testPlacementPosition.set(landscape_vpa[vertexIndex + 0] + 5,
+					landscape_vpa[vertexIndex + 1] + 0,
+					landscape_vpa[vertexIndex + 2] + 5);
+				testPlacementPosition.y += 4.6;
+
+				if (testPlacementPosition.distanceTo(game_Objects[playerRobotIndex].position) < 100)
+					continue;
+
+				 // check surrounding tiles to see if any are playable, want to avoid hyperspacing player to 1 isolated square
+				if (i > 0)
+				{	//check North
+					if (tiles[(i - 1) * numTiles + j].level == tiles[tileIndex].level)
+						okToPlaceRobot = true;
+				}
+				if (i < numTiles - 1)
+				{	//check South
+					if (tiles[(i + 1) * numTiles + j].level == tiles[tileIndex].level)
+						okToPlaceRobot = true;
+				}
+				if (j > 0)
+				{	//check West
+					if (tiles[i * numTiles + (j - 1)].level == tiles[tileIndex].level)
+						okToPlaceRobot = true;
+				}
+				if (j < numTiles - 1)
+				{	//check East
+					if (tiles[i * numTiles + (j + 1)].level == tiles[tileIndex].level)
+						okToPlaceRobot = true;
+				}
+				
+				if (okToPlaceRobot)
+				{
+					potentialPlacementTileIndeces.push(tileIndex);
+				}
+			} // end for (let j = 0; j < numTiles; j++)
+		} // end for (let i = 0; i < numTiles; i++)
+
+		// if we failed to find a decent hyperspace position for player's Robot, try again with less restrictions
+		if (potentialPlacementTileIndeces.length == 0)
+		{
+			console.log("DEBUG: 1st attempt to hyperspace failed, trying again...");
+			
+			for (let i = 0; i < numTiles; i++)
+			{
+				for (let j = 0; j < numTiles; j++)
+				{
+					tileIndex = i * numTiles + j;
+
+					if (tiles[tileIndex].level == -Infinity || tiles[tileIndex].occupied != "" ||
+						tiles[tileIndex].level > game_Objects[playerRobotIndex].level + 10)
+						continue;
+					
+					potentialPlacementTileIndeces.push(tileIndex);
+					
+				} // end for (let j = 0; j < numTiles; j++)
+			} // end for (let i = 0; i < numTiles; i++)
+
+		} // end if (potentialPlacementTileIndeces.length == 0)
+
+		// hopefully should never happen
+		if (potentialPlacementTileIndeces.length == 0)
+			console.log("DEBUG: hyperspace failed");
+
+		if (potentialPlacementTileIndeces.length > 0)
+		{ // now we can safely hyperspace player robot to a new random location
+			randomlyChosenTileIndex = 
+				potentialPlacementTileIndeces[Math.floor(Math.random() * potentialPlacementTileIndeces.length)];
+			
+			gameObjectIndex++;
+
+			game_Objects[gameObjectIndex].tag = "ROBOT_MODEL_ID";
+			game_Objects[gameObjectIndex].level = tiles[randomlyChosenTileIndex].level;
+			game_Objects[gameObjectIndex].tileIndex = randomlyChosenTileIndex;
+
+			vertexIndex = randomlyChosenTileIndex * 18;
+			game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
+				landscape_vpa[vertexIndex + 1] + 0,
+				landscape_vpa[vertexIndex + 2] + 5);
+			game_Objects[gameObjectIndex].position.y += 4.6;
+
+			game_Objects[gameObjectIndex].updateMatrixWorld(true);
+		
+			tiles[game_Objects[playerRobotIndex].tileIndex].occupied = 'robot';
+			playerRobotIndex = gameObjectIndex; // record player's robot Object3D array index
+			tiles[game_Objects[playerRobotIndex].tileIndex].occupied = 'playerRobot';
+			tiles[game_Objects[playerRobotIndex].tileIndex].occupiedIndex = playerRobotIndex;
+
+			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
+			cameraControlsObject.position.y += 3;
+
+			cameraControlsYawObject.rotation.set(0, 0, 0);
+			cameraControlsPitchObject.rotation.set(0, 0, 0);
+
+			cameraControlsYawObject.updateMatrixWorld(true);
+			cameraControlsPitchObject.updateMatrixWorld(true);
+			
+			targetVector.copy(game_Objects[playerRobotIndex].position);
+			targetVector.y = 0;
+			targetVector.normalize();
+
+			// the following points the initial player's robot towards the middle of the landscape
+			turnAngle = Math.acos(ZVector.dot(targetVector));
+			if (game_Objects[playerRobotIndex].position.x < 0)
+				turnAngle = (Math.PI * 2) - turnAngle;
+			cameraControlsYawObject.rotation.y = turnAngle;
+
+			playerUnitsOfEnergy -= 3; // hyperspace costs 3 energy units
+
+			updateTopLevel_BVH();
+
+		} // end if (potentialPlacementTileIndeces.length > 0)
+
+		canPressH = false;
+	}
+	if (!keyboard.pressed('H'))
+	{
+		canPressH = true;
+	}
+
 	
 	// rotate player's robot to match mouse rotation
 	game_Objects[playerRobotIndex].rotation.y = cameraControlsYawObject.rotation.y;
@@ -244,9 +422,10 @@ function doGameLogic()
 
 
 	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
-	cameraInfoElement.innerHTML = "no intersection" + "<br>";
+	//cameraInfoElement.innerHTML = "no intersection" + "<br>";
 	viewRayTargetPosition.set(100000, 100000, 100000);
 
+	
 	// raycast game objects
 	testD = Infinity;
 	closestT = Infinity;
@@ -272,8 +451,8 @@ function doGameLogic()
 	
 	if (closestT < Infinity)
 	{
-		cameraInfoElement.innerHTML = "DEBUG object index:" + selectedObjectIndex + " | object tag:" + game_Objects[selectedObjectIndex].tag + 
-			" | level:" + game_Objects[selectedObjectIndex].level.toFixed(0) + " | tileIndex:" + game_Objects[selectedObjectIndex].tileIndex + "<br>";
+		// cameraInfoElement.innerHTML = "DEBUG object index:" + selectedObjectIndex + " | object tag:" + game_Objects[selectedObjectIndex].tag + 
+		// 	" | level:" + game_Objects[selectedObjectIndex].level.toFixed(0) + " | tileIndex:" + game_Objects[selectedObjectIndex].tileIndex + "<br>";
 		
 		viewRayTargetPosition.copy(closestHitPoint);
 		focusDistance = closestT; 
@@ -386,8 +565,8 @@ function doGameLogic()
 		}
 		else blinkAngle = 0;
 		
-		cameraInfoElement.innerHTML = "DEBUG tile index:" + raycastIndex + " | tile code:" + tiles[raycastIndex].code + " | level:" + tiles[raycastIndex].level.toFixed(0) +
-			" | occupied:" + tiles[raycastIndex].occupied + " | occupiedIndex:" + tiles[raycastIndex].occupiedIndex + "<br>";
+		// cameraInfoElement.innerHTML = "DEBUG tile index:" + raycastIndex + " | tile code:" + tiles[raycastIndex].code + " | level:" + 
+		// 	tiles[raycastIndex].level.toFixed(0) + " | occupied:" + tiles[raycastIndex].occupied + " | occupiedIndex:" + tiles[raycastIndex].occupiedIndex + "<br>";
 		
 		viewRayTargetPosition.copy(intersectArray[0].point);
 		viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
@@ -398,6 +577,7 @@ function doGameLogic()
 	pathTracingUniforms.uSelectedObjectIndex.value = selectedObjectIndex;
 
 } // end function doGameLogic()
+
 
 
 function onDocumentMouseDown(event)
