@@ -16,7 +16,6 @@ let frequency = 0;
 let amplitude = 0;
 let i_offset = 0;
 let j_offset = 0;
-let canBuildNewLevel = true;
 let checkColor0 = new THREE.Color();
 let checkColor1 = new THREE.Color();
 let colors = new Float32Array(numTiles * numTiles * 18);
@@ -24,17 +23,20 @@ let tiles = [];
 let code = '';
 let index = 0;
 let tileIndex = 0;
+let potentialPlacementTileIndeces = [];
+let randomlyChosenTileIndex = -10;
 let vertexIndex = 0;
 let nextRowIndex = 0;
 let highestLevel = 0;
 let lowestLevel = 0;
 let canPressSpace = true;
 let canPressEnter = true;
-let canPressT = true;
 let canPressB = true;
 let canPressR = true;
 let canPressE = true;
 let canPressA = true;
+let canPressT = true;
+let canPressH = true;
 let inGame = false;
 let simplex = new THREE.SimplexNoise();
 let vertexHeights = new Float32Array(numVertices * numVertices);
@@ -201,7 +203,9 @@ let raycastIndex = 0;
 let testIndex = 0;
 let selectionIsValid = false;
 let sentinelAbsorbed = false;
+let winningRobotPlaced = false;
 let viewRayTargetPosition = new THREE.Vector3();
+let testPlacementPosition = new THREE.Vector3();
 let selectedTileIndex = -10.0;
 let blinkAngle = 0.0;
 let playerRobotIndex = 0;
@@ -1394,7 +1398,7 @@ function initSceneData()
 
 
 	// generate random landscape
-	buildNewLevel();
+	buildNewLevel(true);
 
 
 } // end function initSceneData()
@@ -1463,7 +1467,7 @@ function createPathTracingMaterial()
 
 
 
-function buildNewLevel()
+function buildNewLevel(changeLevelColor)
 {
 
 	for (let i = 0; i < numVertices; i++)
@@ -1495,7 +1499,9 @@ function buildNewLevel()
 		}
 	}
 
-	levelCounter++;
+	if (changeLevelColor)
+		levelCounter++;
+	
 	if (levelCounter % 4 == 0)
 	{
 		checkColor0.setRGB(0.001, 0.3, 0.001); // green // GREEN/BLUE combo
@@ -1849,7 +1855,7 @@ function buildNewLevel()
 	// populate game objects: pedestal, Sentinel, sentries (in later levels), and trees
 	populateLevel();
 	
-} // end function buildNewLevel()
+} // end function buildNewLevel(changeLevelColor)
 
 
 
@@ -1858,6 +1864,7 @@ function populateLevel()
 {
 	playerUnitsOfEnergy = STARTING_PLAYER_UNITS_OF_ENERGY; // 10
 	sentinelAbsorbed = false;
+	winningRobotPlaced = false;
 	// clear out game object rotations
 	for (let i = 0; i < MAX_UNITS_OF_ENERGY; i++)
 	{
@@ -1925,7 +1932,7 @@ function populateLevel()
 				gameObjectIndex++;
 
 				game_Objects[gameObjectIndex].tag = "SENTINEL_MODEL_ID";
-				///tiles[tileIndex].occupied = 'sentinel';
+				//tiles[tileIndex].occupied = 'sentinel';
 				game_Objects[gameObjectIndex].level = tiles[tileIndex].level + 10; // on top of higher pedestal
 				game_Objects[gameObjectIndex].tileIndex = tileIndex;
 				game_Objects[gameObjectIndex].position.set(landscape_vpa[vertexIndex + 0] + 5,
@@ -2024,7 +2031,7 @@ function populateLevel()
 	} // end for (let i = 0; i < numTiles; i++)
 
 
-	// if we failed to find a decent starting postion for player's Robot, try again with less restrictions
+	// if we failed to find a decent starting position for player's Robot, try again with less restrictions
 	if (!okToPlaceRobot)
 	{
 		for (let i = 0; i < numTiles; i++)
@@ -2077,7 +2084,6 @@ function populateLevel()
 			} // end for (let j = 0; j < numTiles; j++)
 		} // end for (let i = 0; i < numTiles; i++)
 
-		//console.log("lowestLevel: " + lowestLevel + " playerStartingLevel: " + game_Objects[playerRobotIndex].level);
 	} // end if (!okToPlaceRobot)
 	
 
@@ -2462,15 +2468,13 @@ function updateVariablesAndUniforms()
 		useGenericInput = true;
 		inGame = false;
 
-		game_Objects[playerRobotIndex].rotation.set(0, 0, 0);
-
 		cameraControlsObject.position.set(0, 140, 450);
 		cameraControlsYawObject.rotation.set(0, 0, 0);
 		cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
 		apertureSize = 0.0;
 		pathTracingUniforms.uApertureSize.value = apertureSize;
 
-		buildNewLevel();
+		buildNewLevel(true);
 		canPressSpace = false;
 	}
 	if (!keyboard.pressed('space'))
@@ -2580,14 +2584,17 @@ function updateVariablesAndUniforms()
 
 
 	// INFO
-	if (inGame)
-		cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
-			"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
-	else
-		cameraInfoElement.innerHTML = "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
-			"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
+
+	// if (inGame)
+	// 	cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
+	// 		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
+	// 		"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
+	// else
+	cameraInfoElement.innerHTML = "player Energy: " + playerUnitsOfEnergy + "<br>" + "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
+		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
+		"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + 
+		"Press H: Hyperspace to random tile- warning, costs 3 energy! | Hyperspace while standing on Sentinel's pedestal to Win!";
+			
 
 } // end function updateVariablesAndUniforms()
 
