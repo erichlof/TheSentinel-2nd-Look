@@ -10,10 +10,10 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 * WASD,QZ to fly camera in Landscape selection mode (disabled when entering your Robot in game mode)
 * Press SPACEBAR to generate a new random landscape (cycles through 4 color themes)
 * Press ENTER to enter the player's starting Robot (this is where you start each game level)
-* With a checkerboard tile selected, Press R to create another Robot
+* With a checkerboard tile (or boulder) selected, Press R to create another Robot
 * With that new robot selected (or its checkerboard tile selected), Press E to Enter that other robot
-* With a checkerboard tile selected, Press B to create a Boulder (a base on which more Boulders or another Robot can be stacked)
-* With a checkerboard tile selected, Press T to create a Tree
+* With a checkerboard tile (or another boulder) selected, Press B to create a Boulder (a base on which more Boulders or another Robot can be stacked)
+* With a checkerboard tile (or boulder) selected, Press T to create a Tree (a technique to partially hide your player Robot from the Sentinel's gaze!)
 * MouseClick to absorb an item.  Note: game rules state that you must be able to see the checkerboard tile on which the item sits (will not work if the item is too high).  Does not apply to Boulder bases or player Robots - they can be clicked/absorbed from anywhere on the level.
 * Press H to Hyperspace to a new random tile location, at or below current player height - Warning: Hyperspacing costs 3 energy units!
 * If player energy drops below 0, the level is lost and the player restarts the same type of level
