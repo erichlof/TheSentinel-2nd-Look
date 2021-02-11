@@ -1,8 +1,16 @@
 function doGameLogic()
 {
+	if (playingTeleportAnimation)
+	{
+		doTeleportAnimation();
+		return;
+	}
+
 	// get player Input
 	if (keyboard.pressed('T') && canPressT && !keyboard.pressed('B') && !keyboard.pressed('R'))
 	{
+		canPressT = false;
+
 		if (playerUnitsOfEnergy > 0 && raycastIndex >= 0 && tiles[raycastIndex].code != 'connector' && 
 			tiles[raycastIndex].code != 'flipped' && tiles[raycastIndex].occupied == '')
 		{
@@ -50,8 +58,6 @@ function doGameLogic()
 
 			updateTopLevel_BVH();
 		}
-
-		canPressT = false;
 	}
 	if (!keyboard.pressed('T'))
 	{
@@ -60,6 +66,8 @@ function doGameLogic()
 
 	if (keyboard.pressed('B') && canPressB && !keyboard.pressed('T') && !keyboard.pressed('R'))
 	{
+		canPressB = false;
+
 		if (playerUnitsOfEnergy > 1 && raycastIndex >= 0 && tiles[raycastIndex].code != 'connector' && 
 			tiles[raycastIndex].code != 'flipped' && tiles[raycastIndex].occupied == '')
 		{
@@ -108,8 +116,6 @@ function doGameLogic()
 
 			updateTopLevel_BVH();
 		}
-
-		canPressB = false;
 	}
 	if (!keyboard.pressed('B'))
 	{
@@ -118,6 +124,8 @@ function doGameLogic()
 
 	if (keyboard.pressed('R') && canPressR && !keyboard.pressed('B') && !keyboard.pressed('T'))
 	{
+		canPressR = false;
+
 		if (playerUnitsOfEnergy > 2 && raycastIndex >= 0 && tiles[raycastIndex].code != 'connector' && 
 			tiles[raycastIndex].code != 'flipped' && tiles[raycastIndex].occupied == '')
 		{
@@ -192,8 +200,6 @@ function doGameLogic()
 
 			updateTopLevel_BVH();
 		}
-
-		canPressR = false;
 	}
 	if (!keyboard.pressed('R'))
 	{
@@ -202,32 +208,50 @@ function doGameLogic()
 
 	if (keyboard.pressed('E') && canPressE)
 	{
+		canPressE = false;
+
 		if (raycastIndex >= 0 && tiles[raycastIndex].occupied == 'robot')
 		{
+			animationOldPosition.copy(cameraControlsObject.position);
+			animationOldRotationY = cameraControlsYawObject.rotation.y;
+			animationOldRotationX = cameraControlsPitchObject.rotation.x;
+			animationTargetRotationX = -animationOldRotationX;
+
 			tiles[game_Objects[playerRobotIndex].tileIndex].occupied = 'robot';
 			tiles[raycastIndex].occupied = 'playerRobot';
-			playerRobotIndex = tiles[raycastIndex].occupiedIndex;    
+			playerRobotIndex = tiles[raycastIndex].occupiedIndex;
+			differenceY = (game_Objects[playerRobotIndex].position.y + 6) - viewRayTargetPosition.y;
+			animationTargetRotationX -= differenceY / cameraControlsObject.position.distanceTo(game_Objects[playerRobotIndex].position);
 
-			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
-			cameraControlsObject.position.y += 3;
-			//cameraControlsYawObject.rotation.y = game_Objects[playerRobotIndex].rotation.y;
-			cameraControlsYawObject.rotation.y += Math.PI;
-			cameraControlsPitchObject.rotation.x = 0;
+			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
+			animationTargetPosition.y += 4;
+
+			userCurrentAperture = apertureSize;
+			pathTracingUniforms.uApertureSize.value = 0;
+			playingTeleportAnimation = true;
+			return;
 		}
 		else if (selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'ROBOT_MODEL_ID')
 		{
+			animationOldPosition.copy(cameraControlsObject.position);
+			animationOldRotationY = cameraControlsYawObject.rotation.y;
+			animationOldRotationX = cameraControlsPitchObject.rotation.x;
+			animationTargetRotationX = -animationOldRotationX;
+
 			tiles[game_Objects[playerRobotIndex].tileIndex].occupied = 'robot';
 			tiles[game_Objects[selectedObjectIndex].tileIndex].occupied = 'playerRobot';
 			playerRobotIndex = selectedObjectIndex;
+			differenceY = (game_Objects[playerRobotIndex].position.y + 6) - viewRayTargetPosition.y;
+			animationTargetRotationX -= differenceY / cameraControlsObject.position.distanceTo(game_Objects[playerRobotIndex].position);
 
-			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
-			cameraControlsObject.position.y += 3;
-			//cameraControlsYawObject.rotation.y = game_Objects[playerRobotIndex].rotation.y;
-			cameraControlsYawObject.rotation.y += Math.PI;
-			cameraControlsPitchObject.rotation.x = 0;
+			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
+			animationTargetPosition.y += 4;
+
+			userCurrentAperture = apertureSize;
+			pathTracingUniforms.uApertureSize.value = 0;
+			playingTeleportAnimation = true;
+			return;
 		}
-
-		canPressE = false;
 	}
 	if (!keyboard.pressed('E'))
 	{
@@ -236,6 +260,8 @@ function doGameLogic()
 
 	if (keyboard.pressed('H') && canPressH)
 	{
+		canPressH = false;
+
 		// if player robot is on top of Sentinel's pedestal - the winning endgame position
 		if (game_Objects[playerRobotIndex].tileIndex == game_Objects[0].tileIndex)
 		{
@@ -401,8 +427,6 @@ function doGameLogic()
 			updateTopLevel_BVH();
 
 		} // end if (potentialPlacementTileIndeces.length > 0)
-
-		canPressH = false;
 	}
 	if (!keyboard.pressed('H'))
 	{
@@ -410,6 +434,7 @@ function doGameLogic()
 	}
 
 	
+
 	// rotate player's robot to match mouse rotation
 	game_Objects[playerRobotIndex].rotation.y = cameraControlsYawObject.rotation.y;
 	// initial robot model is facing us (which is backwards), 
@@ -582,7 +607,7 @@ function doGameLogic()
 
 function onDocumentMouseDown(event)
 {
-	if ( !inGame || keyboard.pressed('R') || keyboard.pressed('E') || 
+	if ( !inGame || playingTeleportAnimation || keyboard.pressed('R') || keyboard.pressed('E') || 
 		keyboard.pressed('B') || keyboard.pressed('T') || keyboard.pressed('space') || keyboard.pressed('enter') )
 		return;
 
@@ -652,3 +677,41 @@ function onDocumentMouseDown(event)
 	}
 
 } // end function onDocumentMouseDown(event)
+
+
+function doTeleportAnimation()
+{
+	pathTracingUniforms.uSelectedObjectIndex.value = -10;
+	
+	progressAcceleration += 1 * frameTime;
+	animationProgress += progressAcceleration * frameTime;
+
+	if (animationProgress > 1)
+	{
+		animationProgress = 0;
+		progressAcceleration = 0;
+		playingTeleportAnimation = false;
+		cameraControlsObject.position.copy(animationTargetPosition);
+		cameraControlsYawObject.rotation.y = animationOldRotationY + Math.PI;
+		cameraControlsPitchObject.rotation.x = animationTargetRotationX;
+
+		apertureSize = userCurrentAperture;
+		pathTracingUniforms.uApertureSize.value = apertureSize;
+		
+		return;
+	}
+
+	animationTargetVector.subVectors(animationTargetPosition, animationOldPosition);
+	animationTargetVector.multiplyScalar(animationProgress);
+	cameraControlsObject.position.copy(animationOldPosition);
+	cameraControlsObject.position.add(animationTargetVector);
+
+	cameraControlsYawObject.rotation.y = animationOldRotationY;
+	cameraControlsPitchObject.rotation.x = animationOldRotationX;
+	// if (animationProgress > 0.5)
+	// {
+	// 	cameraControlsYawObject.rotation.y += Math.PI * ((animationProgress - 0.5) * 2);
+	// 	cameraControlsPitchObject.rotation.x += (animationTargetRotationX - animationOldRotationX) * ((animationProgress - 0.5) * 2);
+	// }
+
+} // end function doTeleportAnimation()
