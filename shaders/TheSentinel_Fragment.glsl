@@ -529,7 +529,7 @@ void SceneIntersect( Ray r, int bounces )
 		rObj.origin = vec3( invMatrix * vec4(r.origin, 1.0) );
 		rObj.direction = vec3( invMatrix * vec4(r.direction, 0.0) );
 
-		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 3.0) 
+		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 1.0) 
 			continue; // don't want our view blocked by the inside of our robot's head and shoulders
 
 		objectIsSelected = uSelectedObjectIndex == currentBoxNode.data0.x;
