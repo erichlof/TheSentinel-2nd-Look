@@ -214,6 +214,17 @@ let targetVector = new THREE.Vector3();
 let ZVector = new THREE.Vector3(0, 0, 1);
 let turnAngle = 0;
 
+let playingTeleportAnimation = false;
+let animationProgress = 0;
+let progressAcceleration = 0;
+let animationOldRotationX = 0;
+let animationTargetRotationX = 0;
+let animationOldRotationY = 0;
+let differenceY = 0;
+let userCurrentAperture = 0;
+let animationOldPosition = new THREE.Vector3();
+let animationTargetPosition = new THREE.Vector3();
+let animationTargetVector = new THREE.Vector3();
 
 
 function MaterialObject()
@@ -1588,7 +1599,7 @@ function buildNewLevel(changeLevelColor)
 	i_offset = Math.round(Math.random() * numVertices);
 	j_offset = Math.round(Math.random() * numVertices);
 	frequency = 0.02;
-	amplitude = 1.5;
+	amplitude = 1.2;
 	for (let i = 0; i < numVertices; i++)
 	{
 		for (let j = 0; j < numVertices; j++)
@@ -2489,7 +2500,7 @@ function updateVariablesAndUniforms()
 		pathTracingUniforms.uVLen.value = Math.tan(fovScale);
 		pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
 	}
-	if (apertureSize > 1.0)
+	if (!playingTeleportAnimation && apertureSize > 1.0)
 	{
 		apertureSize = 1.0;
 		pathTracingUniforms.uApertureSize.value = apertureSize;
