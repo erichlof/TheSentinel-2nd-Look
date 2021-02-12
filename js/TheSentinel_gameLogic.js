@@ -1,12 +1,28 @@
 function doGameLogic()
 {
+	if (playingStartGameAnimation)
+	{
+		doStartGameAnimation();
+		return;
+	}
 	if (playingTeleportAnimation)
 	{
 		doTeleportAnimation();
 		return;
 	}
+	if (playingLoseAnimation)
+	{
+		doLoseAnimation();
+		return;
+	}
+	if (playingWinAnimation)
+	{
+		doWinAnimation();
+		return;
+	}
 
-	// get player Input
+	// get player Input during game mode
+
 	if (keyboard.pressed('T') && canPressT && !keyboard.pressed('B') && !keyboard.pressed('R'))
 	{
 		canPressT = false;
@@ -58,8 +74,8 @@ function doGameLogic()
 
 			updateTopLevel_BVH();
 		}
-	}
-	if (!keyboard.pressed('T'))
+	} // end if (keyboard.pressed('T') && canPressT && !keyboard.pressed('B') && !keyboard.pressed('R'))
+	if ( !keyboard.pressed('T') )
 	{
 		canPressT = true;
 	}
@@ -116,8 +132,8 @@ function doGameLogic()
 
 			updateTopLevel_BVH();
 		}
-	}
-	if (!keyboard.pressed('B'))
+	} // end if (keyboard.pressed('B') && canPressB && !keyboard.pressed('T') && !keyboard.pressed('R'))
+	if ( !keyboard.pressed('B') )
 	{
 		canPressB = true;
 	}
@@ -200,8 +216,8 @@ function doGameLogic()
 
 			updateTopLevel_BVH();
 		}
-	}
-	if (!keyboard.pressed('R'))
+	} // end if (keyboard.pressed('R') && canPressR && !keyboard.pressed('B') && !keyboard.pressed('T'))
+	if ( !keyboard.pressed('R') )
 	{
 		canPressR = true;
 	}
@@ -227,7 +243,8 @@ function doGameLogic()
 			animationTargetPosition.y += 4;
 
 			userCurrentAperture = apertureSize;
-			pathTracingUniforms.uApertureSize.value = 0;
+			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+
 			playingTeleportAnimation = true;
 			return;
 		}
@@ -248,12 +265,13 @@ function doGameLogic()
 			animationTargetPosition.y += 4;
 
 			userCurrentAperture = apertureSize;
-			pathTracingUniforms.uApertureSize.value = 0;
+			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+
 			playingTeleportAnimation = true;
 			return;
 		}
-	}
-	if (!keyboard.pressed('E'))
+	} // end if (keyboard.pressed('E') && canPressE)
+	if ( !keyboard.pressed('E') )
 	{
 		canPressE = true;
 	}
@@ -265,36 +283,34 @@ function doGameLogic()
 		// if player robot is on top of Sentinel's pedestal - the winning endgame position
 		if (game_Objects[playerRobotIndex].tileIndex == game_Objects[0].tileIndex)
 		{
-			// player has conquered the level
-			console.log("DEBUG: Player has Won!");
+			// player has won the level!
+			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
+			animationTargetPosition.y += 4;
 
-			useGenericInput = true;
-			inGame = false;
-			cameraControlsObject.position.set(0, 140, 450);
-			cameraControlsYawObject.rotation.set(0, 0, 0);
-			cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
-			apertureSize = 0.0;
-			pathTracingUniforms.uApertureSize.value = apertureSize;
+			animationOldRotationY = cameraControlsYawObject.rotation.y;
+			animationOldRotationX = cameraControlsPitchObject.rotation.x;
 
-			buildNewLevel(true);
+			userCurrentAperture = apertureSize;
+			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+
+			playingWinAnimation = true;
 			return;
 		}
 		// else if the player doesn't have enough energy to hyperspace
 		if (playerUnitsOfEnergy < 3)
 		{
-			// hyperspace costs 3 energy units, so player robot has negative energy
-			// player lost this level
-			console.log("DEBUG: Player has lost this level");
+			// hyperspace costs 3 energy units, so player robot now has negative energy
+			// player lost this level by suicide
+			animationTargetPosition.copy(game_Objects[0].position);
+			animationTargetPosition.y += 10;
 
-			useGenericInput = true;
-			inGame = false;
-			cameraControlsObject.position.set(0, 140, 450);
-			cameraControlsYawObject.rotation.set(0, 0, 0);
-			cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
-			apertureSize = 0.0;
-			pathTracingUniforms.uApertureSize.value = apertureSize;
+			animationOldRotationY = cameraControlsYawObject.rotation.y;
+			animationOldRotationX = cameraControlsPitchObject.rotation.x;
 
-			buildNewLevel(false);
+			userCurrentAperture = apertureSize;
+			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+
+			playingLoseAnimation = true;
 			return;
 		}
 
@@ -404,36 +420,40 @@ function doGameLogic()
 			tiles[game_Objects[playerRobotIndex].tileIndex].occupiedIndex = playerRobotIndex;
 
 			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
-			cameraControlsObject.position.y += 3;
+			cameraControlsObject.position.y += 4;
 
-			cameraControlsYawObject.rotation.set(0, 0, 0);
+			cameraControlsObject.rotation.set(0, 0, 0);
 			cameraControlsPitchObject.rotation.set(0, 0, 0);
+			cameraControlsYawObject.rotation.set(0, 0, 0);
 
-			cameraControlsYawObject.updateMatrixWorld(true);
-			cameraControlsPitchObject.updateMatrixWorld(true);
-			
-			targetVector.copy(game_Objects[playerRobotIndex].position);
-			targetVector.y = 0;
-			targetVector.normalize();
-
-			// the following points the initial player's robot towards the middle of the landscape
-			turnAngle = Math.acos(ZVector.dot(targetVector));
-			if (game_Objects[playerRobotIndex].position.x < 0)
-				turnAngle = (Math.PI * 2) - turnAngle;
-			cameraControlsYawObject.rotation.y = turnAngle;
+			if (game_Objects[playerRobotIndex].position.z > 0)
+			{
+				if (game_Objects[playerRobotIndex].position.x > 0)
+					cameraControlsYawObject.rotation.y += Math.PI * 0.5;
+				if (game_Objects[playerRobotIndex].position.x < 0)
+					cameraControlsYawObject.rotation.y -= Math.PI * 0.5;
+			}
+			if (game_Objects[playerRobotIndex].position.z < 0)
+			{
+				cameraControlsYawObject.rotation.y = Math.PI;
+				if (game_Objects[playerRobotIndex].position.x > 0)
+					cameraControlsYawObject.rotation.y -= Math.PI * 0.5;
+				if (game_Objects[playerRobotIndex].position.x < 0)
+					cameraControlsYawObject.rotation.y += Math.PI * 0.5;
+			}
 
 			playerUnitsOfEnergy -= 3; // hyperspace costs 3 energy units
 
 			updateTopLevel_BVH();
 
 		} // end if (potentialPlacementTileIndeces.length > 0)
-	}
-	if (!keyboard.pressed('H'))
+	} // end if (keyboard.pressed('H') && canPressH)
+	if ( !keyboard.pressed('H') )
 	{
 		canPressH = true;
 	}
 
-	
+	// handle player camera rotation
 
 	// rotate player's robot to match mouse rotation
 	game_Objects[playerRobotIndex].rotation.y = cameraControlsYawObject.rotation.y;
@@ -447,7 +467,7 @@ function doGameLogic()
 
 
 	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
-	//cameraInfoElement.innerHTML = "no intersection" + "<br>";
+
 	viewRayTargetPosition.set(100000, 100000, 100000);
 
 	
@@ -679,8 +699,66 @@ function onDocumentMouseDown(event)
 } // end function onDocumentMouseDown(event)
 
 
+
+function doStartGameAnimation()
+{
+
+	progressAcceleration += 0.2 * frameTime;
+	animationProgress += progressAcceleration * frameTime;
+
+	if (animationProgress > 1)
+	{
+		animationProgress = 0;
+		progressAcceleration = 0;
+		playingStartGameAnimation = false;
+
+		cameraControlsObject.position.copy(animationTargetPosition);
+		cameraControlsObject.rotation.set(0, 0, 0);
+		cameraControlsPitchObject.rotation.set(0, 0, 0);
+		cameraControlsYawObject.rotation.set(0, 0, 0);
+		worldCamera.rotation.set(0, 0, 0);
+		
+		if (animationTargetPosition.z > 0)
+		{
+			if (animationTargetPosition.x > 0)
+				cameraControlsYawObject.rotation.y += Math.PI * 0.5;
+			if (animationTargetPosition.x < 0)
+				cameraControlsYawObject.rotation.y -= Math.PI * 0.5;
+		}
+		if (animationTargetPosition.z < 0)
+		{
+			cameraControlsYawObject.rotation.y = Math.PI;
+			if (animationTargetPosition.x > 0)
+				cameraControlsYawObject.rotation.y -= Math.PI * 0.5;
+			if (animationTargetPosition.x < 0)
+				cameraControlsYawObject.rotation.y += Math.PI * 0.5;
+		}
+
+		apertureSize = userCurrentAperture;
+		pathTracingUniforms.uApertureSize.value = apertureSize;
+
+		pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
+
+		return;
+	}
+
+	animationTargetVector.subVectors(animationTargetPosition, animationOldPosition);
+	animationTargetVector.multiplyScalar(animationProgress);
+	cameraControlsObject.position.copy(animationOldPosition);
+	cameraControlsObject.position.add(animationTargetVector);
+
+	cameraIsMoving = false;
+	pathTracingUniforms.uApertureSize.value = 0.5;
+	viewRayTargetPosition.copy(animationTargetPosition);
+
+	worldCamera.lookAt(animationTargetPosition);
+
+} // end function doStartGameAnimation()
+
+
 function doTeleportAnimation()
 {
+
 	pathTracingUniforms.uSelectedObjectIndex.value = -10;
 	
 	progressAcceleration += 1 * frameTime;
@@ -691,12 +769,16 @@ function doTeleportAnimation()
 		animationProgress = 0;
 		progressAcceleration = 0;
 		playingTeleportAnimation = false;
+
 		cameraControlsObject.position.copy(animationTargetPosition);
 		cameraControlsYawObject.rotation.y = animationOldRotationY + Math.PI;
 		cameraControlsPitchObject.rotation.x = animationTargetRotationX;
+		worldCamera.rotation.set(0, 0, 0);
 
 		apertureSize = userCurrentAperture;
 		pathTracingUniforms.uApertureSize.value = apertureSize;
+
+		pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
 		
 		return;
 	}
@@ -708,10 +790,122 @@ function doTeleportAnimation()
 
 	cameraControlsYawObject.rotation.y = animationOldRotationY;
 	cameraControlsPitchObject.rotation.x = animationOldRotationX;
-	// if (animationProgress > 0.5)
-	// {
-	// 	cameraControlsYawObject.rotation.y += Math.PI * ((animationProgress - 0.5) * 2);
-	// 	cameraControlsPitchObject.rotation.x += (animationTargetRotationX - animationOldRotationX) * ((animationProgress - 0.5) * 2);
-	// }
+	cameraIsMoving = false;
+
+	pathTracingUniforms.uApertureSize.value = 0.8;
+	viewRayTargetPosition.copy(animationTargetPosition);
+	//worldCamera.lookAt(animationTargetPosition); // a little too jarring when teleport starts
 
 } // end function doTeleportAnimation()
+
+
+function doLoseAnimation()
+{
+
+	animationProgress += 0.75 * frameTime;
+
+	if (animationProgress > (Math.PI * 2))
+	{
+		animationProgress = 0;
+		progressAcceleration = 0;
+		playingLoseAnimation = false;
+
+		cameraControlsObject.position.set(0, 140, 450);
+		cameraControlsYawObject.rotation.set(0, 0, 0);
+		cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
+		worldCamera.rotation.set(0, 0, 0);
+
+		apertureSize = 0.0;
+		pathTracingUniforms.uApertureSize.value = apertureSize;
+
+		useGenericInput = true;
+		inGame = false;
+
+		// clear all previous level raycasting data
+		raycastIndex = -10;
+		selectedTileIndex = -10;
+		selectedObjectIndex = -10;
+		pathTracingUniforms.uSelectedTileIndex.value = selectedTileIndex;
+		pathTracingUniforms.uSelectedObjectIndex.value = selectedObjectIndex;
+		selectionIsValid = false;
+
+		buildNewLevel(false);
+
+		return;
+	}
+
+	cameraControlsObject.position.x = animationTargetPosition.x + (Math.cos(animationProgress) * (animationProgress + 3) * 10);
+	cameraControlsObject.position.y = animationTargetPosition.y + 20;
+	cameraControlsObject.position.z = animationTargetPosition.z - (Math.sin(animationProgress) * (animationProgress + 3) * 10);
+
+	cameraControlsYawObject.rotation.y = animationOldRotationY;
+	cameraControlsPitchObject.rotation.x = animationOldRotationX;
+	cameraIsMoving = true;
+
+	pathTracingUniforms.uApertureSize.value = 0.2;
+	viewRayTargetPosition.copy(animationTargetPosition);
+	worldCamera.lookAt(animationTargetPosition);
+	
+} // end function doLoseAnimation()
+
+
+function doWinAnimation()
+{
+
+	progressAcceleration += 0.2 * frameTime;
+	animationProgress += progressAcceleration * frameTime;
+
+	if (animationProgress > 7)
+	{
+		animationProgress = 0;
+		progressAcceleration = 0;
+		playingWinAnimation = false;
+
+		cameraControlsObject.position.set(0, 140, 450);
+		cameraControlsYawObject.rotation.set(0, 0, 0);
+		cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
+		worldCamera.rotation.set(0, 0, 0);
+
+		apertureSize = 0.0;
+		pathTracingUniforms.uApertureSize.value = apertureSize;
+
+		useGenericInput = true;
+		inGame = false;
+
+		// clear all previous level raycasting data
+		raycastIndex = -10;
+		selectedTileIndex = -10;
+		selectedObjectIndex = -10;
+		pathTracingUniforms.uSelectedTileIndex.value = selectedTileIndex;
+		pathTracingUniforms.uSelectedObjectIndex.value = selectedObjectIndex;
+		selectionIsValid = false;
+
+		buildNewLevel(true);
+
+		return;
+	}
+
+	cameraControlsObject.position.x = animationTargetPosition.x + 20;
+	cameraControlsObject.position.y = animationTargetPosition.y + 40;
+	cameraControlsObject.position.z = animationTargetPosition.z + 20;
+	
+	cameraControlsYawObject.rotation.y = animationOldRotationY;
+	cameraControlsPitchObject.rotation.x = animationOldRotationX;
+	cameraIsMoving = true;
+
+	game_Objects[playerRobotIndex].rotation.y = progressAcceleration * 5;
+	game_Objects[playerRobotIndex].position.y += animationProgress;
+	game_Objects[playerRobotIndex].updateMatrixWorld(true); // required for writing to uniforms below
+
+	objInvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
+	objInvMatrices[playerRobotIndex].elements[15] = ROBOT_MODEL_ID;
+
+	pathTracingUniforms.uApertureSize.value = 0.2;
+	viewRayTargetPosition.copy(game_Objects[playerRobotIndex].position);
+	worldCamera.lookAt(game_Objects[playerRobotIndex].position);
+
+	// since the player's robot is not only rotating, but moving up outside of its original designated
+	// BVH bounding box, we must rebuild the gameObjects topLevel BVH structure from scratch every frame!
+	updateTopLevel_BVH();
+
+} // end function doWinAnimation()
