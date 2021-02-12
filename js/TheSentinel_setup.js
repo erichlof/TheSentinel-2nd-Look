@@ -204,6 +204,7 @@ let testIndex = 0;
 let selectionIsValid = false;
 let sentinelAbsorbed = false;
 let winningRobotPlaced = false;
+let viewRaySphereRadius = 2.0;
 let viewRayTargetPosition = new THREE.Vector3();
 let testPlacementPosition = new THREE.Vector3();
 let selectedTileIndex = -10.0;
@@ -215,13 +216,16 @@ let ZVector = new THREE.Vector3(0, 0, 1);
 let turnAngle = 0;
 
 let playingTeleportAnimation = false;
+let playingStartGameAnimation = false;
+let playingLoseAnimation = false;
+let playingWinAnimation = false;
 let animationProgress = 0;
 let progressAcceleration = 0;
 let animationOldRotationX = 0;
 let animationTargetRotationX = 0;
 let animationOldRotationY = 0;
 let differenceY = 0;
-let userCurrentAperture = 0;
+let userCurrentAperture = 0.01;
 let animationOldPosition = new THREE.Vector3();
 let animationTargetPosition = new THREE.Vector3();
 let animationTargetVector = new THREE.Vector3();
@@ -1428,6 +1432,7 @@ function initPathTracingShaders()
 	pathTracingUniforms.uObjInvMatrices = { value: objInvMatrices };
 	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };//new THREE.Vector3 because another variable value is used
 	pathTracingUniforms.uViewRayTargetPosition = { value: viewRayTargetPosition };
+	pathTracingUniforms.uViewRaySphereRadius = { value: viewRaySphereRadius };
 	pathTracingUniforms.uSelectedTileIndex = { value: selectedTileIndex };
 	pathTracingUniforms.uSelectedObjectIndex = { value: selectedObjectIndex };
 
@@ -1876,6 +1881,9 @@ function populateLevel()
 	playerUnitsOfEnergy = STARTING_PLAYER_UNITS_OF_ENERGY; // 10
 	sentinelAbsorbed = false;
 	winningRobotPlaced = false;
+
+	viewRayTargetPosition.set(100000, 100000, 100000);
+
 	// clear out game object rotations
 	for (let i = 0; i < MAX_UNITS_OF_ENERGY; i++)
 	{
@@ -2157,8 +2165,8 @@ function populateLevel()
 			// now create the usual slimmer axis-aligned bounding box for ray casting/collision detection(lower precision) routines on the js (CPU) side
 			gameObject_boundingBoxes[i].copy(tree_modelMesh.geometry.boundingBox);
 			// js-side bounding boxes are still in original model object space - so scale them up(or down, if desired) into world space size 
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor * 0.8);
 			// finally translate the bounding box origin to its parent gameObject's world space location
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
@@ -2312,8 +2320,8 @@ function updateTopLevel_BVH()
 			bounding_box_max.multiplyScalar(modelScale);
 
 			gameObject_boundingBoxes[i].copy(tree_modelMesh.geometry.boundingBox);
-			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor);
-			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor);
+			gameObject_boundingBoxes[i].min.multiplyScalar(modelScale * scaleFactor * 0.8);
+			gameObject_boundingBoxes[i].max.multiplyScalar(modelScale * scaleFactor * 0.8);
 			gameObject_boundingBoxes[i].translate(game_Objects[i].position);
 		}
 		else if (game_Objects[i].tag == "BOULDER_MODEL_ID")
@@ -2440,35 +2448,30 @@ function updateVariablesAndUniforms()
 	{
 		if (keyboard.pressed('enter') && canPressEnter)
 		{
+			canPressEnter = false;
 			useGenericInput = false;
 			inGame = true;
+			playingStartGameAnimation = true;
 
-			cameraControlsObject.position.copy(game_Objects[playerRobotIndex].position);
-			cameraControlsObject.position.y += 3;
-			
+			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+
+			animationOldPosition.copy(cameraControlsObject.position);
+			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
+			animationTargetPosition.y += 4;
+
+			/* // the following points the player's robot towards the middle of the landscape
 			cameraControlsYawObject.rotation.set(0, 0, 0);
 			cameraControlsPitchObject.rotation.set(0, 0, 0);
-
-			cameraControlsYawObject.updateMatrixWorld(true);
-			cameraControlsPitchObject.updateMatrixWorld(true);
-
 			targetVector.copy(game_Objects[playerRobotIndex].position);
 			targetVector.y = 0;
 			targetVector.normalize();
-
-			// the following points the initial player's robot towards the middle of the landscape
+			
 			turnAngle = Math.acos(ZVector.dot(targetVector));
 			if (game_Objects[playerRobotIndex].position.x < 0)
 				turnAngle = (Math.PI * 2) - turnAngle;
-			cameraControlsYawObject.rotation.y = turnAngle;
-
-
-			apertureSize = 0.01;
-			pathTracingUniforms.uApertureSize.value = apertureSize;
-
-			canPressEnter = false;
+			cameraControlsYawObject.rotation.y = turnAngle; */
 		}
-		if (!keyboard.pressed('enter'))
+		if ( !keyboard.pressed('enter') )
 		{
 			canPressEnter = true;
 		}
@@ -2476,6 +2479,7 @@ function updateVariablesAndUniforms()
 
 	if (keyboard.pressed('space') && canPressSpace)
 	{
+		canPressSpace = false;
 		useGenericInput = true;
 		inGame = false;
 
@@ -2486,9 +2490,8 @@ function updateVariablesAndUniforms()
 		pathTracingUniforms.uApertureSize.value = apertureSize;
 
 		buildNewLevel(true);
-		canPressSpace = false;
 	}
-	if (!keyboard.pressed('space'))
+	if ( !keyboard.pressed('space') )
 	{
 		canPressSpace = true;
 	}
@@ -2500,7 +2503,7 @@ function updateVariablesAndUniforms()
 		pathTracingUniforms.uVLen.value = Math.tan(fovScale);
 		pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
 	}
-	if (!playingTeleportAnimation && apertureSize > 1.0)
+	if (apertureSize > 1.0)
 	{
 		apertureSize = 1.0;
 		pathTracingUniforms.uApertureSize.value = apertureSize;
