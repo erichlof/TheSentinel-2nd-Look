@@ -13,6 +13,7 @@ uniform mat4 uObjInvMatrices[64];
 uniform vec4 uTopLevelAABBTree[256];
 uniform vec3 uSunDirection;
 uniform vec3 uViewRayTargetPosition;
+uniform float uViewRaySphereRadius;
 uniform float uSelectedTileIndex;
 uniform float uSelectedObjectIndex;
 
@@ -277,8 +278,8 @@ void SceneIntersect( Ray r, int bounces )
 
 	intersec.t = INFINITY;
 
-	// viewing ray target metal sphere (for debug mode)
-	d = SphereIntersect( 2.0, uViewRayTargetPosition, r );
+	// viewing ray target metal sphere
+	d = SphereIntersect( uViewRaySphereRadius, uViewRayTargetPosition, r );
 	if (d < intersec.t)
 	{
 		intersec.t = d;
@@ -419,7 +420,7 @@ void SceneIntersect( Ray r, int bounces )
 			posZ = hitPos.z * 0.1;
 			gridZ = floor(posZ);
 			
-			intersec.color = abs(intersec.normal.x) > abs(intersec.normal.z) ? vec3(1) : vec3(0);
+			intersec.color = abs(intersec.normal.x) > abs(intersec.normal.z) ? vec3(0.4) : vec3(0.005,0.001,0.001);
 
 			if (posX - gridX < lineThickness) // to the right of snap grid
 			{
@@ -523,14 +524,14 @@ void SceneIntersect( Ray r, int bounces )
 		// else this is a leaf
 		invMatrix = uObjInvMatrices[int(currentBoxNode.data0.x)];
 		model_id = invMatrix[3][3];
+		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 0.1) 
+			continue; // don't want our view blocked by the inside of our robot's head and shoulders
+
 		// once the model_id code is extracted, set this last matrix element ([15]) back to 1.0
 		invMatrix[3][3] = 1.0;
 		// transform ray into leaf object's object space
 		rObj.origin = vec3( invMatrix * vec4(r.origin, 1.0) );
 		rObj.direction = vec3( invMatrix * vec4(r.direction, 0.0) );
-
-		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 1.0) 
-			continue; // don't want our view blocked by the inside of our robot's head and shoulders
 
 		objectIsSelected = uSelectedObjectIndex == currentBoxNode.data0.x;
 		Object_BVH_Intersect(rObj, mat3(invMatrix), model_id, objectIsSelected);
@@ -580,12 +581,6 @@ vec3 CalculateRadiance(Ray r)
 
 		SceneIntersect(r, bounces);
 
-		// // for testing object placement
-		// if (bounces == 0 && intersec.type == LIGHT)
-		// {
-		// 	accumCol = mask * intersec.emission * 10.0;
-		// 	break;
-		// } // end if (intersec.t == LIGHT)
 
 		if (intersec.t == INFINITY)
 		{
@@ -617,7 +612,7 @@ vec3 CalculateRadiance(Ray r)
 			mask *= intersec.color;
 
 			if (bounceIsSpecular) 
-				accumCol = mask * 0.6; // ambient color
+				accumCol = mask * 0.5; // ambient color
 
 			bounceIsSpecular = false;
 
