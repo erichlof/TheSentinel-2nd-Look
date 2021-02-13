@@ -20,6 +20,11 @@ function doGameLogic()
 		doWinAnimation();
 		return;
 	}
+	if (doingDissolveEffect)
+	{
+		doDissolveEffect();
+		return;
+	}
 
 	// get player Input during game mode
 
@@ -501,6 +506,9 @@ function doGameLogic()
 		// cameraInfoElement.innerHTML = "DEBUG object index:" + selectedObjectIndex + " | object tag:" + game_Objects[selectedObjectIndex].tag + 
 		// 	" | level:" + game_Objects[selectedObjectIndex].level.toFixed(0) + " | tileIndex:" + game_Objects[selectedObjectIndex].tileIndex + "<br>";
 		
+		if (!doingDissolveEffect)
+			pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
+
 		viewRayTargetPosition.copy(closestHitPoint);
 		focusDistance = closestT; 
 	}
@@ -575,6 +583,9 @@ function doGameLogic()
 	raycastIndex = -10; // reset index
 	if (intersectArray.length > 0 && intersectArray[0].distance < closestT)
 	{
+		if (!doingDissolveEffect)
+			pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
+
 		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
 		selectedObjectIndex = tiles[raycastIndex].occupiedIndex;
 
@@ -641,7 +652,32 @@ function onDocumentMouseDown(event)
 	// do a deep copy of each gameObject's higher neighbor element, essentially compacting the gameObjects array by 1 element
 	if (!sentinelAbsorbed && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag != 'PEDESTAL_MODEL_ID')
 	{
-		
+		pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+		doingDissolveEffect = true;
+		pathTracingUniforms.uDoingDissolveEffect.value = doingDissolveEffect;
+	}
+
+} // end function onDocumentMouseDown(event)
+
+
+
+function doDissolveEffect()
+{
+
+	pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
+
+	progressAcceleration += 1.5 * frameTime;
+	dissolveEffectStrength += progressAcceleration * frameTime;
+	//dissolveEffectStrength += 1 * frameTime;
+
+	if (dissolveEffectStrength > 1)
+	{
+		progressAcceleration = 0;
+		dissolveEffectStrength = 0;
+		pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
+		doingDissolveEffect = false;
+		pathTracingUniforms.uDoingDissolveEffect.value = doingDissolveEffect;
+
 		if (game_Objects[selectedObjectIndex].tag == 'TREE_MODEL_ID')
 			playerUnitsOfEnergy += 1;
 		else if (game_Objects[selectedObjectIndex].tag == 'MEANIE_MODEL_ID')
@@ -656,16 +692,16 @@ function onDocumentMouseDown(event)
 		{
 			playerUnitsOfEnergy += 4;
 			sentinelAbsorbed = true;
-		}	
-		
+		}
+
 		testIndex = game_Objects[selectedObjectIndex].tileIndex;
-		
+
 		if (tiles[testIndex].occupiedIndex == selectedObjectIndex)
 		{
 			tiles[testIndex].occupied = '';
 			tiles[testIndex].occupiedIndex = -10;
 		}
-		
+
 		if (playerRobotIndex > selectedObjectIndex)
 			playerRobotIndex -= 1;
 
@@ -681,7 +717,7 @@ function onDocumentMouseDown(event)
 				}
 			}
 		}
-		
+
 		for (let i = selectedObjectIndex; i < gameObjectIndex; i++)
 		{
 			game_Objects[i].tag = game_Objects[i + 1].tag;
@@ -695,10 +731,12 @@ function onDocumentMouseDown(event)
 		}
 
 		gameObjectIndex -= 1; // now that the item has been removed, decrease gameObjectIndex by 1
+		pathTracingUniforms.uSelectedObjectIndex.value = -10;
 		updateTopLevel_BVH();
-	}
 
-} // end function onDocumentMouseDown(event)
+	} // end if (dissolveEffectStrength > 1)	
+
+} // end function doDissolveEffect()
 
 
 
@@ -760,7 +798,7 @@ function doStartGameAnimation()
 
 function doTeleportAnimation()
 {
-
+	// temporarily disable selected robot highlighting
 	pathTracingUniforms.uSelectedObjectIndex.value = -10;
 	
 	progressAcceleration += 1 * frameTime;
