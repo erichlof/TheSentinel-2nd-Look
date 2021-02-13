@@ -16,7 +16,10 @@ uniform vec3 uViewRayTargetPosition;
 uniform float uViewRaySphereRadius;
 uniform float uSelectedTileIndex;
 uniform float uSelectedObjectIndex;
+uniform float uDissolveEffectStrength;
+uniform bool uDoingDissolveEffect;
 uniform bool uPlayingTeleportAnimation;
+
 
 #define INV_TEXTURE_WIDTH 0.00390625 // (1 / 256 texture width)
 
@@ -88,7 +91,7 @@ BoxNode GetBoxNode2DArray(in float i, in float depth)
 
 
 //-----------------------------------------------------------------------------------------------------------------------
-void Object_BVH_Intersect( Ray rObj, mat3 invMatrix, in float depth_id, in bool objectIsSelected )
+void Object_BVH_Intersect( Ray rObj, mat3 invMatrix, in float depth_id, in bool objectIsSelected, in bool doingDissolveEffect )
 //-----------------------------------------------------------------------------------------------------------------------
 {
 	BoxNode currentBoxNode, nodeA, nodeB, tmpNode;
@@ -231,9 +234,8 @@ void Object_BVH_Intersect( Ray rObj, mat3 invMatrix, in float depth_id, in bool 
 		// else use vertex normals
 		//triangleW = 1.0 - triangleU - triangleV;
 		//intersec.normal = normalize(triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
-		intersec.color = objectIsSelected ? vec3(0,2,1) : vec3(vd4.w, vd5.xy);
+		intersec.color = (objectIsSelected && !doingDissolveEffect) ? vec3(0,2,1) : vec3(vd4.w, vd5.xy);
 		intersec.type = depth_id == 4.0 ? COAT : DIFF;
-		//intersec.type = LIGHT; intersec.emission = vec3(1,0,1); // for testing object placement
 
 	} // end if (triangleLookupNeeded)
 
@@ -523,6 +525,10 @@ void SceneIntersect( Ray r, int bounces )
 
 
 		// else this is a leaf
+		objectIsSelected = uSelectedObjectIndex == currentBoxNode.data0.x;
+		if (objectIsSelected && rng() < uDissolveEffectStrength)
+			continue;
+
 		invMatrix = uObjInvMatrices[int(currentBoxNode.data0.x)];
 		model_id = invMatrix[3][3];
 		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 0.1) 
@@ -534,8 +540,8 @@ void SceneIntersect( Ray r, int bounces )
 		rObj.origin = vec3( invMatrix * vec4(r.origin, 1.0) );
 		rObj.direction = vec3( invMatrix * vec4(r.direction, 0.0) );
 
-		objectIsSelected = uSelectedObjectIndex == currentBoxNode.data0.x;
-		Object_BVH_Intersect(rObj, mat3(invMatrix), model_id, objectIsSelected);
+		
+		Object_BVH_Intersect(rObj, mat3(invMatrix), model_id, objectIsSelected, uDoingDissolveEffect);
 
         } // end while (true)
 
