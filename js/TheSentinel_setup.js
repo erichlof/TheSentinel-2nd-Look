@@ -1435,6 +1435,7 @@ function initPathTracingShaders()
 	pathTracingUniforms.uViewRaySphereRadius = { value: viewRaySphereRadius };
 	pathTracingUniforms.uSelectedTileIndex = { value: selectedTileIndex };
 	pathTracingUniforms.uSelectedObjectIndex = { value: selectedObjectIndex };
+	pathTracingUniforms.uPlayingTeleportAnimation = { value: playingTeleportAnimation };
 
 	pathTracingDefines = {
 		//NUMBER_OF_TRIANGLES: total_number_of_triangles
