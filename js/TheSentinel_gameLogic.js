@@ -246,6 +246,7 @@ function doGameLogic()
 			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
 
 			playingTeleportAnimation = true;
+			pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
 			return;
 		}
 		else if (selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'ROBOT_MODEL_ID')
@@ -268,6 +269,7 @@ function doGameLogic()
 			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
 
 			playingTeleportAnimation = true;
+			pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
 			return;
 		}
 	} // end if (keyboard.pressed('E') && canPressE)
@@ -748,7 +750,7 @@ function doStartGameAnimation()
 	cameraControlsObject.position.add(animationTargetVector);
 
 	cameraIsMoving = false;
-	pathTracingUniforms.uApertureSize.value = 0.5;
+	pathTracingUniforms.uApertureSize.value = 0.3;
 	viewRayTargetPosition.copy(animationTargetPosition);
 
 	worldCamera.lookAt(animationTargetPosition);
@@ -769,6 +771,7 @@ function doTeleportAnimation()
 		animationProgress = 0;
 		progressAcceleration = 0;
 		playingTeleportAnimation = false;
+		pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
 
 		cameraControlsObject.position.copy(animationTargetPosition);
 		cameraControlsYawObject.rotation.y = animationOldRotationY + Math.PI;
@@ -792,7 +795,7 @@ function doTeleportAnimation()
 	cameraControlsPitchObject.rotation.x = animationOldRotationX;
 	cameraIsMoving = false;
 
-	pathTracingUniforms.uApertureSize.value = 0.8;
+	pathTracingUniforms.uApertureSize.value = 0.2;
 	viewRayTargetPosition.copy(animationTargetPosition);
 	//worldCamera.lookAt(animationTargetPosition); // a little too jarring when teleport starts
 
