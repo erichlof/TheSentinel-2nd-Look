@@ -16,6 +16,7 @@ uniform vec3 uViewRayTargetPosition;
 uniform float uViewRaySphereRadius;
 uniform float uSelectedTileIndex;
 uniform float uSelectedObjectIndex;
+uniform bool uPlayingTeleportAnimation;
 
 #define INV_TEXTURE_WIDTH 0.00390625 // (1 / 256 texture width)
 
@@ -777,6 +778,11 @@ void main( void )
 	{
                 previousColor *= 0.5; // motion-blur trail amount (old image)
                 pixelColor *= 0.5; // brightness of new image (noisy)
+        }
+	else if (uPlayingTeleportAnimation)
+	{
+                previousColor *= 0.9; // motion-blur trail amount (old image)
+                pixelColor *= 0.1; // brightness of new image (noisy)
         }
 	else
 	{
