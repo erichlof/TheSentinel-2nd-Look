@@ -219,6 +219,8 @@ let playingTeleportAnimation = false;
 let playingStartGameAnimation = false;
 let playingLoseAnimation = false;
 let playingWinAnimation = false;
+let doingDissolveEffect = false;
+let dissolveEffectStrength = 0;
 let animationProgress = 0;
 let progressAcceleration = 0;
 let animationOldRotationX = 0;
@@ -1436,6 +1438,8 @@ function initPathTracingShaders()
 	pathTracingUniforms.uSelectedTileIndex = { value: selectedTileIndex };
 	pathTracingUniforms.uSelectedObjectIndex = { value: selectedObjectIndex };
 	pathTracingUniforms.uPlayingTeleportAnimation = { value: playingTeleportAnimation };
+	pathTracingUniforms.uDoingDissolveEffect = { value: doingDissolveEffect };
+	pathTracingUniforms.uDissolveEffectStrength = { value: dissolveEffectStrength };
 
 	pathTracingDefines = {
 		//NUMBER_OF_TRIANGLES: total_number_of_triangles
