@@ -24,8 +24,7 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 <h2>TODO</h2>
 
 * Make the Sentinel Game! lol - now that the rendering is mostly worked out, add the actual gameplay and game logic
-* Make head Sentinel and her lower sentries slowly rotate while scanning the landscape for items with energy levels above natural trees - that includes you! 
-* Add special effects such as the cool pixel dissolve when an item/player is absorbed
+* Make head Sentinel and her lower sentries slowly rotate while scanning the landscape for items with energy levels above natural trees - that includes you!
 * Add simple GUI showing player assets as well as player visibility to The Sentinel and lower Sentries
 * Add the classic original sound effects and short recurring melodic theme
 * Unfortunately because it uses many BVHs, this game currently runs on Desktop only - Mobile is, as always, a W.I.P.
