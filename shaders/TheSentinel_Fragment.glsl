@@ -16,6 +16,7 @@ uniform vec3 uViewRayTargetPosition;
 uniform float uViewRaySphereRadius;
 uniform float uSelectedTileIndex;
 uniform float uSelectedObjectIndex;
+uniform float uResolvingObjectIndex;
 uniform float uDissolveEffectStrength;
 uniform bool uDoingDissolveEffect;
 uniform bool uPlayingTeleportAnimation;
@@ -525,8 +526,8 @@ void SceneIntersect( Ray r, int bounces )
 
 
 		// else this is a leaf
-		objectIsSelected = uSelectedObjectIndex == currentBoxNode.data0.x;
-		if (objectIsSelected && rng() < uDissolveEffectStrength)
+		objectIsSelected = uSelectedObjectIndex == currentBoxNode.data0.x || uResolvingObjectIndex == currentBoxNode.data0.x;
+		if (currentBoxNode.data0.x != 0.0 && objectIsSelected && rng() < uDissolveEffectStrength)
 			continue;
 
 		invMatrix = uObjInvMatrices[int(currentBoxNode.data0.x)];
