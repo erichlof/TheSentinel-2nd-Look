@@ -25,6 +25,11 @@ function doGameLogic()
 		doDissolveEffect();
 		return;
 	}
+	if (doingResolveEffect)
+	{
+		doResolveEffect();
+		return;
+	}
 
 	// get player Input during game mode
 
@@ -56,7 +61,7 @@ function doGameLogic()
 			objInvMatrices[gameObjectIndex].elements[15] = TREE_MODEL_ID;
 
 			playerUnitsOfEnergy -= 1;
-
+			canDoResolveEffect = true;
 			updateTopLevel_BVH();
 		}
 		else if (playerUnitsOfEnergy > 0 && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'BOULDER_MODEL_ID')
@@ -76,9 +81,21 @@ function doGameLogic()
 			objInvMatrices[gameObjectIndex].elements[15] = TREE_MODEL_ID;
 
 			playerUnitsOfEnergy -= 1;
-
+			canDoResolveEffect = true;
 			updateTopLevel_BVH();
 		}
+
+		if (canDoResolveEffect)
+		{
+			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			dissolveEffectStrength = 1.0;
+			pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
+			doingResolveEffect = true;
+			pathTracingUniforms.uDoingDissolveEffect.value = doingResolveEffect;
+			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
+		}
+		canDoResolveEffect = false;
+		
 	} // end if (keyboard.pressed('T') && canPressT && !keyboard.pressed('B') && !keyboard.pressed('R'))
 	if ( !keyboard.pressed('T') )
 	{
@@ -113,7 +130,7 @@ function doGameLogic()
 			objInvMatrices[gameObjectIndex].elements[15] = BOULDER_MODEL_ID;
 
 			playerUnitsOfEnergy -= 2;
-			
+			canDoResolveEffect = true;
 			updateTopLevel_BVH();
 		}
 		else if (playerUnitsOfEnergy > 1 && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'BOULDER_MODEL_ID')
@@ -134,9 +151,21 @@ function doGameLogic()
 			objInvMatrices[gameObjectIndex].elements[15] = BOULDER_MODEL_ID;
 
 			playerUnitsOfEnergy -= 2;
-
+			canDoResolveEffect = true;
 			updateTopLevel_BVH();
 		}
+
+		if (canDoResolveEffect)
+		{
+			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			dissolveEffectStrength = 1.0;
+			pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
+			doingResolveEffect = true;
+			pathTracingUniforms.uDoingDissolveEffect.value = doingResolveEffect;
+			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
+		}
+		canDoResolveEffect = false;
+		
 	} // end if (keyboard.pressed('B') && canPressB && !keyboard.pressed('T') && !keyboard.pressed('R'))
 	if ( !keyboard.pressed('B') )
 	{
@@ -173,7 +202,7 @@ function doGameLogic()
 			objInvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
 
 			playerUnitsOfEnergy -= 3;
-			
+			canDoResolveEffect = true;
 			updateTopLevel_BVH();
 		}
 		else if (playerUnitsOfEnergy > 2 && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag == 'BOULDER_MODEL_ID')
@@ -194,7 +223,7 @@ function doGameLogic()
 			objInvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
 
 			playerUnitsOfEnergy -= 3;
-
+			canDoResolveEffect = true;
 			updateTopLevel_BVH();
 		}
 		else if (!winningRobotPlaced && sentinelAbsorbed && playerUnitsOfEnergy > 2 && selectedObjectIndex >= 0 && 
@@ -218,9 +247,20 @@ function doGameLogic()
 			objInvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
 
 			playerUnitsOfEnergy -= 3;
-
+			canDoResolveEffect = true;
 			updateTopLevel_BVH();
 		}
+
+		if (canDoResolveEffect)
+		{
+			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			dissolveEffectStrength = 1.0;
+			pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
+			doingResolveEffect = true;
+			pathTracingUniforms.uDoingDissolveEffect.value = doingResolveEffect;
+			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
+		}
+		canDoResolveEffect = false;
 	} // end if (keyboard.pressed('R') && canPressR && !keyboard.pressed('B') && !keyboard.pressed('T'))
 	if ( !keyboard.pressed('R') )
 	{
@@ -506,7 +546,7 @@ function doGameLogic()
 		// cameraInfoElement.innerHTML = "DEBUG object index:" + selectedObjectIndex + " | object tag:" + game_Objects[selectedObjectIndex].tag + 
 		// 	" | level:" + game_Objects[selectedObjectIndex].level.toFixed(0) + " | tileIndex:" + game_Objects[selectedObjectIndex].tileIndex + "<br>";
 		
-		if (!doingDissolveEffect)
+		if (!doingDissolveEffect && !doingResolveEffect)
 			pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
 
 		viewRayTargetPosition.copy(closestHitPoint);
@@ -583,7 +623,7 @@ function doGameLogic()
 	raycastIndex = -10; // reset index
 	if (intersectArray.length > 0 && intersectArray[0].distance < closestT)
 	{
-		if (!doingDissolveEffect)
+		if (!doingDissolveEffect && !doingResolveEffect)
 			pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
 
 		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
@@ -664,8 +704,6 @@ function onDocumentMouseDown(event)
 function doDissolveEffect()
 {
 
-	pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
-
 	progressAcceleration += 1.5 * frameTime;
 	dissolveEffectStrength += progressAcceleration * frameTime;
 	//dissolveEffectStrength += 1 * frameTime;
@@ -734,9 +772,36 @@ function doDissolveEffect()
 		pathTracingUniforms.uSelectedObjectIndex.value = -10;
 		updateTopLevel_BVH();
 
-	} // end if (dissolveEffectStrength > 1)	
+		return;
+
+	} // end if (dissolveEffectStrength > 1)
+	
+	pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 
 } // end function doDissolveEffect()
+
+
+
+function doResolveEffect()
+{
+
+	progressAcceleration += 1.5 * frameTime;
+	dissolveEffectStrength -= progressAcceleration * frameTime;
+
+	if (dissolveEffectStrength < 0)
+	{
+		progressAcceleration = 0;
+		dissolveEffectStrength = 0;
+		pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
+		doingResolveEffect = false;
+		pathTracingUniforms.uDoingDissolveEffect.value = doingResolveEffect;
+		pathTracingUniforms.uResolvingObjectIndex.value = -10;
+		return;
+	} // end if (dissolveEffectStrength < 0)
+	
+	pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
+
+} // end function doResolveEffect()
 
 
 
@@ -861,6 +926,7 @@ function doLoseAnimation()
 
 		useGenericInput = true;
 		inGame = false;
+		canDoResolveEffect = true;
 
 		// clear all previous level raycasting data
 		raycastIndex = -10;
@@ -912,6 +978,7 @@ function doWinAnimation()
 
 		useGenericInput = true;
 		inGame = false;
+		canDoResolveEffect = true;
 
 		// clear all previous level raycasting data
 		raycastIndex = -10;
