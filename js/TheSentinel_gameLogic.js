@@ -33,7 +33,7 @@ function doGameLogic()
 
 	// get player Input during game mode
 
-	if (keyboard.pressed('T') && canPressT && !keyboard.pressed('B') && !keyboard.pressed('R'))
+	if (keyPressed('t') && canPressT && !keyPressed('b') && !keyPressed('r'))
 	{
 		canPressT = false;
 
@@ -96,13 +96,13 @@ function doGameLogic()
 		}
 		canDoResolveEffect = false;
 		
-	} // end if (keyboard.pressed('T') && canPressT && !keyboard.pressed('B') && !keyboard.pressed('R'))
-	if ( !keyboard.pressed('T') )
+	} // end if (keyPressed('t') && canPressT && !keyPressed('b') && !keyPressed('r'))
+	if ( !keyPressed('t') )
 	{
 		canPressT = true;
 	}
 
-	if (keyboard.pressed('B') && canPressB && !keyboard.pressed('T') && !keyboard.pressed('R'))
+	if (keyPressed('b') && canPressB && !keyPressed('t') && !keyPressed('r'))
 	{
 		canPressB = false;
 
@@ -166,13 +166,13 @@ function doGameLogic()
 		}
 		canDoResolveEffect = false;
 		
-	} // end if (keyboard.pressed('B') && canPressB && !keyboard.pressed('T') && !keyboard.pressed('R'))
-	if ( !keyboard.pressed('B') )
+	} // end if (keyPressed('b') && canPressB && !keyPressed('t') && !keyPressed('r'))
+	if ( !keyPressed('b') )
 	{
 		canPressB = true;
 	}
 
-	if (keyboard.pressed('R') && canPressR && !keyboard.pressed('B') && !keyboard.pressed('T'))
+	if (keyPressed('r') && canPressR && !keyPressed('b') && !keyPressed('t'))
 	{
 		canPressR = false;
 
@@ -261,13 +261,13 @@ function doGameLogic()
 			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
 		}
 		canDoResolveEffect = false;
-	} // end if (keyboard.pressed('R') && canPressR && !keyboard.pressed('B') && !keyboard.pressed('T'))
-	if ( !keyboard.pressed('R') )
+	} // end if (keyPressed('r') && canPressR && !keyPressed('b') && !keyPressed('t'))
+	if (!keyPressed('r') )
 	{
 		canPressR = true;
 	}
 
-	if (keyboard.pressed('E') && canPressE)
+	if (keyPressed('e') && canPressE)
 	{
 		canPressE = false;
 
@@ -317,13 +317,13 @@ function doGameLogic()
 			pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
 			return;
 		}
-	} // end if (keyboard.pressed('E') && canPressE)
-	if ( !keyboard.pressed('E') )
+	} // end if (keyPressed('e') && canPressE)
+	if ( !keyPressed('e') )
 	{
 		canPressE = true;
 	}
 
-	if (keyboard.pressed('H') && canPressH)
+	if (keyPressed('h') && canPressH)
 	{
 		canPressH = false;
 
@@ -494,8 +494,8 @@ function doGameLogic()
 			updateTopLevel_BVH();
 
 		} // end if (potentialPlacementTileIndeces.length > 0)
-	} // end if (keyboard.pressed('H') && canPressH)
-	if ( !keyboard.pressed('H') )
+	} // end if (keyPressed('h') && canPressH)
+	if ( !keyPressed('h') )
 	{
 		canPressH = true;
 	}
@@ -680,8 +680,8 @@ function doGameLogic()
 
 function onDocumentMouseDown(event)
 {
-	if ( !inGame || playingTeleportAnimation || keyboard.pressed('R') || keyboard.pressed('E') || 
-		keyboard.pressed('B') || keyboard.pressed('T') || keyboard.pressed('space') || keyboard.pressed('enter') )
+	if (!inGame || playingTeleportAnimation || keyPressed('r') || keyPressed('e') || 
+		keyPressed('b') || keyPressed('t') || keyPressed('space') || keyPressed('enter') )
 		return;
 
 	event.preventDefault();
