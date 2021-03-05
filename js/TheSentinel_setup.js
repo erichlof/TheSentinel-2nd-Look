@@ -2454,7 +2454,7 @@ function updateVariablesAndUniforms()
 {
 	if ( !inGame )
 	{
-		if (keyboard.pressed('enter') && canPressEnter)
+		if (keyPressed('enter') && canPressEnter)
 		{
 			canPressEnter = false;
 			useGenericInput = false;
@@ -2479,30 +2479,32 @@ function updateVariablesAndUniforms()
 				turnAngle = (Math.PI * 2) - turnAngle;
 			cameraControlsYawObject.rotation.y = turnAngle; */
 		}
-		if ( !keyboard.pressed('enter') )
+		if (!keyPressed('enter') )
 		{
 			canPressEnter = true;
 		}
+	
+
+		if (keyPressed('space') && canPressSpace)
+		{
+			canPressSpace = false;
+			useGenericInput = true;
+			inGame = false;
+
+			cameraControlsObject.position.set(0, 140, 450);
+			cameraControlsYawObject.rotation.set(0, 0, 0);
+			cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
+			apertureSize = 0.0;
+			pathTracingUniforms.uApertureSize.value = apertureSize;
+
+			buildNewLevel(true);
+		}
+		if (!keyPressed('space') )
+		{
+			canPressSpace = true;
+		}
+
 	} // end if ( !inGame )
-
-	if (keyboard.pressed('space') && canPressSpace)
-	{
-		canPressSpace = false;
-		useGenericInput = true;
-		inGame = false;
-
-		cameraControlsObject.position.set(0, 140, 450);
-		cameraControlsYawObject.rotation.set(0, 0, 0);
-		cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
-		apertureSize = 0.0;
-		pathTracingUniforms.uApertureSize.value = apertureSize;
-
-		buildNewLevel(true);
-	}
-	if ( !keyboard.pressed('space') )
-	{
-		canPressSpace = true;
-	}
 
 	if (worldCamera.fov > 30)	
 	{
@@ -2551,11 +2553,11 @@ function updateVariablesAndUniforms()
 			decreaseFOV = false;
 		}
 
-		if (keyboard.pressed('right') && !keyboard.pressed('left'))
+		if (keyPressed('right') && !keyPressed('left'))
 		{
 			increaseAperture = true;
 		}
-		if (keyboard.pressed('left') && !keyboard.pressed('right'))
+		if (keyPressed('left') && !keyPressed('right'))
 		{
 			decreaseAperture = true;
 		}
