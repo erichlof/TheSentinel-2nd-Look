@@ -7,6 +7,14 @@ let sphereObjectPosition = new THREE.Vector3();
 let axisOfRotation = new THREE.Vector3();
 let sunDirection = new THREE.Vector3();
 let lightAngle = 0;
+let sentinelFacingVec = new THREE.Vector3();
+let testVec = new THREE.Vector3();
+let playerHeadToEnemyVec = new THREE.Vector3();
+let playerTileToEnemyVec = new THREE.Vector3();
+let playerHeadPos = new THREE.Vector3();
+let playerTilePos = new THREE.Vector3();
+let playerHeadIsVisibleToSentinel = false;
+let playerTileIsVisibleToSentinel = false;
 let planeGeometry, planeMaterial, planeMesh;
 let numTiles = 40; // 40
 let numVertices = numTiles + 1;
@@ -198,6 +206,7 @@ let hitPoint = new THREE.Vector3();
 let closestHitPoint = new THREE.Vector3();
 let testD = Infinity;
 let closestT = Infinity;
+let testT = Infinity;
 let selectedObjectIndex = -10.0;
 let raycastIndex = 0;
 let testIndex = 0;
@@ -2609,13 +2618,14 @@ function updateVariablesAndUniforms()
 
 	// INFO
 
-	// if (inGame)
-	// 	cameraInfoElement.innerHTML += "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-	// 		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
-	// 		"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + "playerUnitsOfEnergy: " + playerUnitsOfEnergy;
-	// else
-	cameraInfoElement.innerHTML = "player Energy: " + playerUnitsOfEnergy + "<br>" + "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
+	if (inGame)
+		cameraInfoElement.innerHTML += "player Energy: " + playerUnitsOfEnergy + "<br>" + "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
+		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Click to start | " + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
+		"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" +
+		"Press H: Hyperspace to random tile- warning, costs 3 energy! | Hyperspace while standing on Sentinel's pedestal to Win!";
+	else
+		cameraInfoElement.innerHTML = "player Energy: " + playerUnitsOfEnergy + "<br>" + "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
+		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Click to start | " + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
 		"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + 
 		"Press H: Hyperspace to random tile- warning, costs 3 energy! | Hyperspace while standing on Sentinel's pedestal to Win!";
 			
