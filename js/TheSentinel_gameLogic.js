@@ -1,5 +1,113 @@
 function doGameLogic()
 {
+	// rotate the Sentinel and her Sentries(if any)
+	for (let i = 1; i <= 1 + numOfSentries; i++)
+	{
+		if (game_Objects[i].tag == 'SENTINEL_MODEL_ID' || game_Objects[i].tag == 'SENTRY_MODEL_ID')
+		{
+			// will complete 1 total revolution (2 PI radians) every 120 seconds (2 minutes)
+			game_Objects[i].rotation.y += 0.0523598776 * frameTime;
+			game_Objects[i].rotation.y %= (Math.PI * 2);
+			game_Objects[i].updateMatrixWorld(true); // required for writing to uniforms below
+
+			objInvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
+			if (i == 1)
+				objInvMatrices[i].elements[15] = SENTINEL_MODEL_ID;
+			else
+				objInvMatrices[i].elements[15] = SENTRY_MODEL_ID;
+		}
+	}
+
+	// see if player's robot is within Sentinel's narrow field of view
+	game_Objects[1].getWorldDirection(sentinelFacingVec);
+	testVec.copy(game_Objects[playerRobotIndex].position);
+	testVec.sub(game_Objects[1].position).normalize();
+	if ( THREE.MathUtils.radToDeg(sentinelFacingVec.angleTo(testVec)) < 30)
+		playerHeadIsVisibleToSentinel = true;
+	else playerHeadIsVisibleToSentinel = false;
+
+	if (!playingTeleportAnimation)
+	{
+		// raycast backwards from player's head toward the Sentinel to see if we are visible or partially visible to her.
+		// Also, to be visible/partially visible, our player robot must be within the Sentinel's narrow field of view
+		playerHeadPos.copy(game_Objects[playerRobotIndex].position);
+		playerHeadPos.y += 4;
+		playerHeadToEnemyVec.copy(game_Objects[1].position);
+		playerHeadToEnemyVec.y += 4.5;
+		playerHeadToEnemyVec.sub(playerHeadPos).normalize();
+		raycaster.set(playerHeadPos, playerHeadToEnemyVec);
+		raycaster.ray.intersectBox(gameObject_boundingBoxes[1], hitPoint);
+		closestT = raycaster.ray.origin.distanceTo(hitPoint);
+
+		playerTileIsVisibleToSentinel = false; // reset flag
+		// check if any other game objects are blocking the Sentinel's line of sight towards player's head
+		for (let i = 0; i <= gameObjectIndex; i++)
+		{
+			if (i == playerRobotIndex || i == 1)
+				continue;
+
+			if (raycaster.ray.intersectBox(gameObject_boundingBoxes[i], hitPoint) != null)
+			{
+				testD = raycaster.ray.origin.distanceTo(hitPoint);
+				if (testD < closestT)
+				{
+					playerHeadIsVisibleToSentinel = false;
+				}
+			}
+		}
+		// check if any part of the terrain is blocking the Sentinel's line of sight towards player's head
+		// now raycast landscape terrain
+		intersectArray.length = 0;
+		raycaster.intersectObject(planeMesh, false, intersectArray);
+		if (intersectArray.length > 0 && intersectArray[0].distance < closestT)
+			playerHeadIsVisibleToSentinel = false;
+
+		// only if player's head is visible to the Sentinel do we want to further check if the tile the player's robot 
+		// is standing on is also visible.  If so, start draining player's energy.
+		if (playerHeadIsVisibleToSentinel)
+		{
+			playerTilePos.copy(game_Objects[playerRobotIndex].position);
+			playerTilePos.y -= 4.5;
+			playerTileToEnemyVec.copy(game_Objects[1].position);
+			playerTileToEnemyVec.y += 4.5;
+			playerTileToEnemyVec.sub(playerTilePos).normalize();
+			raycaster.set(playerTilePos, playerTileToEnemyVec);
+			raycaster.ray.intersectBox(gameObject_boundingBoxes[1], hitPoint);
+			closestT = raycaster.ray.origin.distanceTo(hitPoint);
+			playerTileIsVisibleToSentinel = true;
+
+			// check if any other game objects are blocking the Sentinel's line of sight towards player's tile
+			for (let i = 0; i <= gameObjectIndex; i++)
+			{
+				if (i == playerRobotIndex || i == 1 || game_Objects[i].tileIndex == game_Objects[playerRobotIndex].tileIndex)
+					continue;
+
+				if (raycaster.ray.intersectBox(gameObject_boundingBoxes[i], hitPoint) != null)
+				{
+					testD = raycaster.ray.origin.distanceTo(hitPoint);
+					if (testD < closestT)
+					{
+						playerTileIsVisibleToSentinel = false;
+					}
+				}
+			}
+			// check if any part of the terrain is blocking the Sentinel's line of sight towards player's head
+			// now raycast landscape terrain
+			intersectArray.length = 0;
+			raycaster.intersectObject(planeMesh, false, intersectArray);
+			if (intersectArray.length > 0 && intersectArray[0].distance < closestT)
+				playerTileIsVisibleToSentinel = false;
+		}
+
+	} // end if (!playingTeleportAnimation)
+	
+
+	cameraInfoElement.innerHTML = "DEBUG: Sentinel sees your Head: " + playerHeadIsVisibleToSentinel + 
+					" | Sentinel sees your standingTile/Boulder: " + playerTileIsVisibleToSentinel + "<br>";
+
+
+
+	// if doing any animations, temporarily skip player input until the animation is finished
 	if (playingStartGameAnimation)
 	{
 		doStartGameAnimation();
@@ -31,7 +139,8 @@ function doGameLogic()
 		return;
 	}
 
-	// get player Input during game mode
+
+	// otherwise if no animations are playing, get player Input during game mode
 
 	if (keyPressed('t') && canPressT && !keyPressed('b') && !keyPressed('r'))
 	{
@@ -287,6 +396,8 @@ function doGameLogic()
 			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
 			animationTargetPosition.y += 4;
 
+			//worldCamera.lookAt(animationTargetPosition);
+
 			userCurrentAperture = apertureSize;
 			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
 
@@ -309,6 +420,8 @@ function doGameLogic()
 
 			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
 			animationTargetPosition.y += 4;
+
+			//worldCamera.lookAt(animationTargetPosition);
 
 			userCurrentAperture = apertureSize;
 			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
@@ -513,12 +626,11 @@ function doGameLogic()
 	objInvMatrices[playerRobotIndex].elements[15] = ROBOT_MODEL_ID;
 
 
-	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
 
+	// raycast game objects
+	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
 	viewRayTargetPosition.set(100000, 100000, 100000);
 
-	
-	// raycast game objects
 	testD = Infinity;
 	closestT = Infinity;
 	selectedObjectIndex = -10; // reset index
@@ -557,34 +669,50 @@ function doGameLogic()
 	{
 		testIndex = game_Objects[selectedObjectIndex].tileIndex;
 
-		//selectionIsValid = false;
-
 		if (game_Objects[selectedObjectIndex].tag == 'ROBOT_MODEL_ID')
 		{
-			selectionIsValid = true; // can always select a robot
+			selectionIsValid = true; // can always select a robot, unless..
+
+			// if our view to the robot's feet/tile is blocked, the selection is not valid
+			
+			playerTilePos.copy(game_Objects[selectedObjectIndex].position);
+			playerTilePos.y -= 4.5;
+			testVec.copy(playerTilePos);
+			testVec.sub(cameraControlsObject.position).normalize();
+			raycaster.set(cameraControlsObject.position, testVec);
+			raycaster.ray.intersectBox(gameObject_boundingBoxes[selectedObjectIndex], hitPoint);
+			testT = raycaster.ray.origin.distanceTo(hitPoint);
+
+			// now raycast landscape terrain and see if our line of sight to the selected robot's tile is blocked
+			intersectArray.length = 0;
+			raycaster.intersectObject(planeMesh, false, intersectArray);
+			if (intersectArray.length > 0 && intersectArray[0].distance < testT)
+				selectionIsValid = false;
+			
 		}
 		else if (game_Objects[selectedObjectIndex].tag == 'TREE_MODEL_ID')
 		{
-			selectionIsValid = false; // cannot select trees themselves, unless...
-			// check to see if tree is on top of a stack of boulders
-			for (let i = 0; i < selectedObjectIndex; i++)
-			{
-				if (game_Objects[i].tileIndex == game_Objects[selectedObjectIndex].tileIndex)
-				{
-					selectionIsValid = true;
-					break;
-				}	
-			}
+			selectionIsValid = false; // cannot select trees directly
 		}
 		else if (game_Objects[selectedObjectIndex].tag == 'BOULDER_MODEL_ID')
 		{
 			selectionIsValid = true; // can select a boulder except when it's below another item in a stack
 			// check to see if any other item is above it in the same boulder stack
 			for (let i = selectedObjectIndex + 1; i <= gameObjectIndex; i++)
-			{
+			{ // if one of the higher boulders (game_Objects[i]) has the same tileIndex as the boulder we selected, the selection is not valid
 				if (game_Objects[i].tileIndex == game_Objects[selectedObjectIndex].tileIndex)
 				{
-					selectionIsValid = false;
+					if (game_Objects[i].tag == 'ROBOT_MODEL_ID')
+					{
+						selectedObjectIndex = i;
+					}
+					else if (game_Objects[i].tag == 'TREE_MODEL_ID')
+					{
+						selectedObjectIndex = i;
+					}
+					else
+						selectionIsValid = false;
+
 					break;
 				}
 			}
@@ -616,8 +744,10 @@ function doGameLogic()
 	if (!selectionIsValid)
 		selectedObjectIndex = -10; // turns off highlighting and disallows object selection
 
-	// raycast landscape terrain
+
+	// now raycast landscape terrain
 	intersectArray.length = 0;
+	raycaster.set(cameraControlsObject.position, cameraDirectionVector);
 	raycaster.intersectObject(planeMesh, false, intersectArray);
 	selectedTileIndex = -10; // reset index
 	raycastIndex = -10; // reset index
@@ -670,7 +800,7 @@ function doGameLogic()
 		viewRayTargetPosition.add(intersectArray[0].face.normal.multiplyScalar(2));
 		focusDistance = intersectArray[0].distance;
 	}
-	
+
 	pathTracingUniforms.uSelectedTileIndex.value = selectedTileIndex;
 	pathTracingUniforms.uSelectedObjectIndex.value = selectedObjectIndex;
 
