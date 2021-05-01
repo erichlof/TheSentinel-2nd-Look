@@ -7,8 +7,10 @@ let sphereObjectPosition = new THREE.Vector3();
 let axisOfRotation = new THREE.Vector3();
 let sunDirection = new THREE.Vector3();
 let lightAngle = 0;
+let sentinelTurnAngle = 0;
 let sentinelFacingVec = new THREE.Vector3();
 let testVec = new THREE.Vector3();
+let crossProduct = new THREE.Vector3();
 let playerHeadToEnemyVec = new THREE.Vector3();
 let playerTileToEnemyVec = new THREE.Vector3();
 let playerHeadPos = new THREE.Vector3();
@@ -384,7 +386,7 @@ function initSceneData()
 
 	document.addEventListener('mousedown', onDocumentMouseDown);
 
-	//pixelRatio = 1; // for computers with more powerful graphics cards
+	//pixelRatio = 1; // for computers with the latest GPUs!
 
 	EPS_intersect = mouseControl ? 0.01 : 1.0; // less precision on mobile
 
@@ -1452,6 +1454,9 @@ function initPathTracingShaders()
 	pathTracingUniforms.uDoingDissolveEffect = { value: doingDissolveEffect };
 	pathTracingUniforms.uDissolveEffectStrength = { value: dissolveEffectStrength };
 	pathTracingUniforms.uResolvingObjectIndex = { value: -10 };
+	pathTracingUniforms.uColorEdgeSharpeningRate = { type: "f", value: 0.0 };
+	pathTracingUniforms.uNormalEdgeSharpeningRate = { type: "f", value: 0.0 };
+	pathTracingUniforms.uObjectEdgeSharpeningRate = { type: "f", value: 0.0 };
 
 	pathTracingDefines = {
 		//NUMBER_OF_TRIANGLES: total_number_of_triangles
@@ -2316,6 +2321,16 @@ function populateLevel()
 		topLevelAABBTree[i].set(topLevel_aabb_array[iX4 + 0], topLevel_aabb_array[iX4 + 1],
 			topLevel_aabb_array[iX4 + 2], topLevel_aabb_array[iX4 + 3]);
 	}
+
+	game_Objects[1].getWorldDirection(sentinelFacingVec);
+	testVec.copy(game_Objects[playerRobotIndex].position);
+	testVec.sub(game_Objects[1].position);
+	testVec.y = 0;
+	testVec.normalize();
+	crossProduct.crossVectors(sentinelFacingVec, testVec);
+	if (crossProduct.y < 0)
+		sentinelTurnAngle = -0.0523598776;
+	else sentinelTurnAngle = 0.0523598776
 
 } // end function populateLevel()
 
