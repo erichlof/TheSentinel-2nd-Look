@@ -274,6 +274,8 @@ void SceneIntersect( Ray r, int bounces, out float intersectedObjectID )
 	float posX, gridX, posZ, gridZ;
 	float lineThickness = 0.01;
 	float oneMinusLineThickness = 1.0 - lineThickness;
+
+	int objectCount = 0;
 	
 	bool skip = false;
 	bool triangleLookupNeeded = false;
@@ -291,8 +293,9 @@ void SceneIntersect( Ray r, int bounces, out float intersectedObjectID )
 		intersec.emission = vec3(0);
 		intersec.color = vec3(1);//vec3(1.0, 0.765557, 0.336057);
 		intersec.type = SPEC;
-		intersectedObjectID = 0.0;
+		intersectedObjectID = float(objectCount);
 	}
+	objectCount++;
 
 	// LANDSCAPE BVH ////////////
 
@@ -414,13 +417,15 @@ void SceneIntersect( Ray r, int bounces, out float intersectedObjectID )
 		intersec.normal = normalize(triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
 		intersec.color = (triangleID == uSelectedTileIndex || triangleID == uSelectedTileIndex + 8.0) ? vec3(0,2,1) : vd2.yzw;
 		intersec.type = DIFF;
-		intersectedObjectID = -100.0;
+		intersectedObjectID = float(objectCount);
+		objectCount++;
 
 		hitPos = r.origin + r.direction * intersec.t;
 		if (intersec.color == vec3(1.0))
 		{
 			intersec.type = COAT;
-			intersectedObjectID = 2.0;
+			intersectedObjectID = float(objectCount);
+			objectCount++;
 			
 			posX = hitPos.x * 0.1;
 			gridX = floor(posX);
@@ -434,24 +439,28 @@ void SceneIntersect( Ray r, int bounces, out float intersectedObjectID )
 				intersec.type = SPEC;
 				intersec.color = vec3(0, 0, 1); // blue trim
 				intersec.normal.x -= 1.0;
+				intersectedObjectID = float(objectCount);
 			}
 			if (posX - gridX > oneMinusLineThickness) // to the left of snap grid
 			{
 				intersec.type = SPEC;
 				intersec.color = vec3(0, 0, 1); // blue trim
 				intersec.normal.x += 1.0;
+				intersectedObjectID = float(objectCount);
 			}
 			if (posZ - gridZ < lineThickness) // in front of snap grid
 			{
 				intersec.type = SPEC;
 				intersec.color = vec3(0, 0, 1); // blue trim
 				intersec.normal.z -= 1.0;
+				intersectedObjectID = float(objectCount);
 			}
 			if (posZ - gridZ > oneMinusLineThickness) // behind snap grid
 			{
 				intersec.type = SPEC;
 				intersec.color = vec3(0, 0, 1); // blue trim
 				intersec.normal.z += 1.0;
+				intersectedObjectID = float(objectCount);
 			}
 
 			intersec.normal = normalize(intersec.normal);
@@ -544,7 +553,7 @@ void SceneIntersect( Ray r, int bounces, out float intersectedObjectID )
 		rObj.origin = vec3( invMatrix * vec4(r.origin, 1.0) );
 		rObj.direction = vec3( invMatrix * vec4(r.direction, 0.0) );
 
-		intersectedObjectID = 3.0;
+		intersectedObjectID = float(objectCount);
 		Object_BVH_Intersect(rObj, mat3(invMatrix), model_id, objectIsSelected, uDoingDissolveEffect);
 
         } // end while (true)
@@ -587,9 +596,10 @@ vec3 CalculateRadiance( Ray r, out vec3 objectNormal, out vec3 objectColor, out 
 	bool bounceIsSpecular = true;
 	bool sampleLight = false;
 
-	pixelSharpness = 1.0;
+	pixelSharpness = 1.01;
 
-	for (int bounces = 0; bounces < 3; bounces++)
+
+	for (int bounces = 0; bounces < 4; bounces++)
 	{
 
 		SceneIntersect(r, bounces, intersectedObjectID);
@@ -657,6 +667,9 @@ vec3 CalculateRadiance( Ray r, out vec3 objectNormal, out vec3 objectColor, out 
 		/*
 		if (intersec.type == REFR)  // Ideal dielectric REFRACTION
 		{
+			// if (bounces == 0)
+			// 	pixelSharpness = -1.0;
+
 			nc = 1.0; // IOR of Air
 			nt = 1.5; // IOR of Glass
 			Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
@@ -693,7 +706,7 @@ vec3 CalculateRadiance( Ray r, out vec3 objectNormal, out vec3 objectColor, out 
 				pixelSharpness = 0.0;
 
 			nc = 1.0; // IOR of Air
-			nt = 1.5; // IOR of Clear Coat
+			nt = 1.6; // IOR of Clear Coat
 			Re = calcFresnelReflectance(r.direction, n, nc, nt, ratioIoR);
 			Tr = 1.0 - Re;
 			P  = 0.25 + (0.5 * Re);
@@ -702,12 +715,13 @@ vec3 CalculateRadiance( Ray r, out vec3 objectNormal, out vec3 objectColor, out 
 
 			if (bounces == 0 && rand() < P)
 			{
+				
 				mask *= RP;
 				r = Ray( x, reflect(r.direction, nl) );
 				r.origin += nl * uEPS_intersect;
 				continue;
 			}
-			
+
 			diffuseCount++;
 			
 			if (bounces == 0)
@@ -851,15 +865,24 @@ void main( void )
                 currentPixel.rgb *= 0.2; // brightness of new image (noisy)
         }
 	
-        currentPixel.a = pixelSharpness;
+        currentPixel.a = 0.0;
+	if (colorDifference >= 1.0 || normalDifference >= 1.0)// || objectDifference >= 1.0)
+		pixelSharpness = 1.01;
 
-	currentPixel.a = colorDifference  >= 1.0 ? min(uSampleCounter * uColorEdgeSharpeningRate , 1.01) : currentPixel.a;
-	currentPixel.a = normalDifference >= 1.0 ? min(uSampleCounter * uNormalEdgeSharpeningRate, 1.01) : currentPixel.a;
-	currentPixel.a = objectDifference >= 1.0 ? min(uSampleCounter * uObjectEdgeSharpeningRate, 1.01) : currentPixel.a;
 	
 	// Eventually, all edge-containing pixels' .a (alpha channel) values will converge to 1.01, which keeps them from getting blurred by the box-blur filter, thus retaining sharpness.
-	if (pixelSharpness == 1.0 || previousPixel.a > 1.0)
+	if (previousPixel.a == 1.01)
 		currentPixel.a = 1.01;
+	// for dynamic scenes
+	if (previousPixel.a == 1.01 && rng() < 0.05)
+		currentPixel.a = 1.0;
+	if (previousPixel.a == -1.0)
+		currentPixel.a = 0.0;
+
+	if (pixelSharpness == 1.01)
+		currentPixel.a = 1.01;
+	if (pixelSharpness == -1.0)
+		currentPixel.a = -1.0;
 	
 	
 	pc_fragColor = vec4(previousPixel.rgb + currentPixel.rgb, currentPixel.a);	
