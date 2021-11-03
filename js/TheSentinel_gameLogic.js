@@ -6,7 +6,7 @@ function doGameLogic()
 		if (game_Objects[i].tag == 'SENTINEL_MODEL_ID' || game_Objects[i].tag == 'SENTRY_MODEL_ID')
 		{
 			// will complete 1 total revolution (2 PI radians) every 120 seconds (2 minutes)
-			game_Objects[i].rotation.y += 0.0523598776 * frameTime;
+			game_Objects[i].rotation.y += sentinelTurnAngle * frameTime;
 			game_Objects[i].rotation.y %= (Math.PI * 2);
 			game_Objects[i].updateMatrixWorld(true); // required for writing to uniforms below
 
@@ -21,8 +21,10 @@ function doGameLogic()
 	// see if player's robot is within Sentinel's narrow field of view
 	game_Objects[1].getWorldDirection(sentinelFacingVec);
 	testVec.copy(game_Objects[playerRobotIndex].position);
-	testVec.sub(game_Objects[1].position).normalize();
-	if ( THREE.MathUtils.radToDeg(sentinelFacingVec.angleTo(testVec)) < 30)
+	testVec.sub(game_Objects[1].position);
+	testVec.y = 0;
+	testVec.normalize();
+	if ( THREE.MathUtils.radToDeg(sentinelFacingVec.angleTo(testVec)) < 20)
 		playerHeadIsVisibleToSentinel = true;
 	else playerHeadIsVisibleToSentinel = false;
 
@@ -142,7 +144,7 @@ function doGameLogic()
 
 	// otherwise if no animations are playing, get player Input during game mode
 
-	if (keyPressed('t') && canPressT && !keyPressed('b') && !keyPressed('r'))
+	if (keyPressed('t') && canPressT && !keyPressed('b') && !keyPressed('r') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressT = false;
 
@@ -211,7 +213,7 @@ function doGameLogic()
 		canPressT = true;
 	}
 
-	if (keyPressed('b') && canPressB && !keyPressed('t') && !keyPressed('r'))
+	if (keyPressed('b') && canPressB && !keyPressed('t') && !keyPressed('r') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressB = false;
 
@@ -281,7 +283,7 @@ function doGameLogic()
 		canPressB = true;
 	}
 
-	if (keyPressed('r') && canPressR && !keyPressed('b') && !keyPressed('t'))
+	if (keyPressed('r') && canPressR && !keyPressed('b') && !keyPressed('t') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressR = false;
 
@@ -667,7 +669,7 @@ function doGameLogic()
 
 	if (selectedObjectIndex >= 0)
 	{
-		testIndex = game_Objects[selectedObjectIndex].tileIndex;
+		//testIndex = game_Objects[selectedObjectIndex].tileIndex;
 
 		if (game_Objects[selectedObjectIndex].tag == 'ROBOT_MODEL_ID')
 		{
@@ -702,7 +704,8 @@ function doGameLogic()
 			{ // if one of the higher boulders (game_Objects[i]) has the same tileIndex as the boulder we selected, the selection is not valid
 				if (game_Objects[i].tileIndex == game_Objects[selectedObjectIndex].tileIndex)
 				{
-					if (game_Objects[i].tag == 'ROBOT_MODEL_ID')
+										// make sure we're not trying to select the boulder that we are standing on!
+					if (game_Objects[i].tag == 'ROBOT_MODEL_ID' && game_Objects[i].tileIndex != game_Objects[playerRobotIndex].tileIndex)
 					{
 						selectedObjectIndex = i;
 					}
@@ -737,7 +740,7 @@ function doGameLogic()
 			}
 		}
 		// don't need to check SENTRY, SENTINEL, or MEANIE IDs because they are never directly selectable.
-		// instead, their tile on which they rest must be visible and selected
+		// instead, the tile on which they rest must be visible and selected
 		
 	} // end if (selectedObjectIndex >= 0)
 
@@ -757,6 +760,7 @@ function doGameLogic()
 			pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
 
 		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
+
 		selectedObjectIndex = tiles[raycastIndex].occupiedIndex;
 
 		if (sentinelAbsorbed && selectedObjectIndex >= 0)
@@ -780,7 +784,7 @@ function doGameLogic()
 		if (selectedObjectIndex == playerRobotIndex)
 			selectedObjectIndex = -10;
 		
-		if (tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped')
+		if (tiles[raycastIndex].code != 'connector' && tiles[raycastIndex].code != 'flipped' && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 		{  
 			if (Math.cos(blinkAngle % (Math.PI * 2)) > 0)
 			{
