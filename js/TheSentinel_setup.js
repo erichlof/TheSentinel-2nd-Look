@@ -54,7 +54,7 @@ let levelCounter = -1;
 let upVector = new THREE.Vector3(0, 1, 0);
 let modelScale = 10.0;
 let scaleFactor = 0.9;
-let MAX_UNITS_OF_ENERGY = 64;
+let MAX_UNITS_OF_ENERGY = 64; // 64
 let levelPlacementUnitsAvailable = 0;
 let STARTING_PLAYER_UNITS_OF_ENERGY = 10; // 10
 let playerUnitsOfEnergy = 0;
@@ -388,7 +388,7 @@ function initSceneData()
 	// pixelRatio is resolution - range: 0.5(half resolution) to 1.0(full resolution)
 	pixelRatio = mouseControl ? 0.75 : 0.75; // less demanding on battery-powered mobile devices
 
-	EPS_intersect = mouseControl ? 0.01 : 1.0; // less precision on mobile
+	EPS_intersect = 0.01;
 
 	// position and orient camera
 	cameraControlsObject.position.set(0, 140, 450);
@@ -434,6 +434,7 @@ function initSceneData()
 		objInvMatrices[i] = new THREE.Matrix4(); 
 	}
 	// GAME OBJECTS AABB Tree (array of THREE.Vector4 uniforms to be sent to the GPU)
+			//  256
 	for (let i = 0; i < 256; i++) // enough to hold ~ 64 nodes + 64 leaves * 2 (2 Vector4's for each node)
 	{
 		topLevelAABBTree[i] = new THREE.Vector4();
@@ -2312,7 +2313,7 @@ function populateLevel()
 
 	console.log("topLevel_objects count:" + topLevel_totalWork.length);
 	BVH_Build_Iterative(topLevel_totalWork, topLevel_aabb_array);
-
+			//  256
 	for (let i = 0; i < 256; i++)
 	{
 		iX4 = i * 4;
@@ -2460,7 +2461,7 @@ function updateTopLevel_BVH()
 
 	//console.log("topLevel_objects count:" + topLevel_totalWork.length);
 	BVH_Build_Iterative(topLevel_totalWork, topLevel_aabb_array);
-
+			//  256
 	for (let i = 0; i < 256; i++)
 	{
 		iX4 = i * 4;
