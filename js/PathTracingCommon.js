@@ -11,10 +11,6 @@ uniform float uApertureSize;
 uniform float uFocusDistance;
 uniform float uSamplesPerFrame;
 uniform float uFrameBlendingAmount;
-uniform float uColorEdgeSharpeningRate;
-uniform float uNormalEdgeSharpeningRate;
-uniform float uObjectEdgeSharpeningRate;
-uniform float uSunAngularDiameterCos;
 uniform vec2 uResolution;
 uniform vec2 uRandomVec2;
 uniform mat4 uCameraMatrix;
@@ -76,7 +72,7 @@ THREE.ShaderChunk[ 'pathtracing_skymodel_defines' ] = `
 #define UP_VECTOR vec3(0.0, 1.0, 0.0)
 #define SUN_POWER 1000.0
 // 66 arc seconds -> degrees, and the cosine of that
-//#define SUN_ANGULAR_DIAMETER_COS 0.9998 //0.9999566769
+#define SUN_ANGULAR_DIAMETER_COS 0.9998 //0.9999566769
 #define CUTOFF_ANGLE 1.6110731556870734
 #define STEEPNESS 1.5
 `;
@@ -84,46 +80,46 @@ THREE.ShaderChunk[ 'pathtracing_skymodel_defines' ] = `
 
 THREE.ShaderChunk[ 'pathtracing_plane_intersect' ] = `
 //-----------------------------------------------------------------------
-float PlaneIntersect( vec4 pla, Ray r )
+float PlaneIntersect( vec4 pla, vec3 rayOrigin, vec3 rayDirection )
 //-----------------------------------------------------------------------
 {
 	vec3 n = pla.xyz;
-	float denom = dot(n, r.direction);
+	float denom = dot(n, rayDirection);
 	
-        vec3 pOrO = (pla.w * n) - r.origin; 
+        vec3 pOrO = (pla.w * n) - rayOrigin; 
         float result = dot(pOrO, n) / denom;
 	return (result > 0.0) ? result : INFINITY;
 }
 `;
 
 THREE.ShaderChunk[ 'pathtracing_single_sided_plane_intersect' ] = `
-//-----------------------------------------------------------------------
-float SingleSidedPlaneIntersect( vec4 pla, Ray r )
-//-----------------------------------------------------------------------
+//----------------------------------------------------------------------------
+float SingleSidedPlaneIntersect( vec4 pla, vec3 rayOrigin, vec3 rayDirection )
+//----------------------------------------------------------------------------
 {
 	vec3 n = pla.xyz;
-	float denom = dot(n, r.direction);
+	float denom = dot(n, rayDirection);
 	if (denom > 0.0) return INFINITY;
 	
-        vec3 pOrO = (pla.w * n) - r.origin; 
+        vec3 pOrO = (pla.w * n) - rayOrigin; 
         float result = dot(pOrO, n) / denom;
 	return (result > 0.0) ? result : INFINITY;
 }
 `;
 
 THREE.ShaderChunk[ 'pathtracing_disk_intersect' ] = `
-//-----------------------------------------------------------------------
-float DiskIntersect( float radius, vec3 pos, vec3 normal, Ray r )
-//-----------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+float DiskIntersect( float radius, vec3 pos, vec3 normal, vec3 rayOrigin, vec3 rayDirection )
+//-------------------------------------------------------------------------------------------
 {
-	vec3 pOrO = pos - r.origin;
-	float denom = dot(-normal, r.direction);
+	vec3 pOrO = pos - rayOrigin;
+	float denom = dot(-normal, rayDirection);
 	// use the following for one-sided disk
 	//if (denom <= 0.0) return INFINITY;
 	
         float result = dot(pOrO, -normal) / denom;
 	if (result < 0.0) return INFINITY;
-        vec3 intersectPos = r.origin + r.direction * result;
+        vec3 intersectPos = rayOrigin + rayDirection * result;
 	vec3 v = intersectPos - pos;
 	float d2 = dot(v,v);
 	float radiusSq = radius * radius;
@@ -135,39 +131,33 @@ float DiskIntersect( float radius, vec3 pos, vec3 normal, Ray r )
 `;
 
 THREE.ShaderChunk[ 'pathtracing_rectangle_intersect' ] = `
-//------------------------------------------------------------------------------------
-float RectangleIntersect( vec3 pos, vec3 normal, float radiusU, float radiusV, Ray r )
-//------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------
+float RectangleIntersect( vec3 pos, vec3 normal, float radiusU, float radiusV, vec3 rayOrigin, vec3 rayDirection )
+//----------------------------------------------------------------------------------------------------------------
 {
-	float dt = dot(-normal, r.direction);
+	float dt = dot(-normal, rayDirection);
 	// use the following for one-sided rectangle
 	if (dt < 0.0) return INFINITY;
-	float t = dot(-normal, pos - r.origin) / dt;
+	float t = dot(-normal, pos - rayOrigin) / dt;
 	if (t < 0.0) return INFINITY;
 	
-	vec3 hit = r.origin + r.direction * t;
+	vec3 hit = rayOrigin + rayDirection * t;
 	vec3 vi = hit - pos;
-	// from "Building an Orthonormal Basis, Revisited" http://jcgt.org/published/0006/01/01/
-	// float signf = normal.z >= 0.0 ? 1.0 : -1.0;
-	// float a = -1.0 / (signf + normal.z);
-	// float b = normal.x * normal.y * a;
-	// vec3 T = vec3( 1.0 + signf * normal.x * normal.x * a, signf * b, -signf * normal.x );
-	// vec3 B = vec3( b, signf + normal.y * normal.y * a, -normal.y );
-	vec3 U = normalize( cross(vec3(0.7071067811865475, 0.7071067811865475, 0), normal ) );
+	vec3 U = normalize( cross( abs(normal.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0), normal ) );
 	vec3 V = cross(normal, U);
-	return (abs(dot(V, vi)) > radiusU || abs(dot(U, vi)) > radiusV) ? INFINITY : t;
+	return (abs(dot(U, vi)) > radiusU || abs(dot(V, vi)) > radiusV) ? INFINITY : t;
 }
 `;
 
 THREE.ShaderChunk[ 'pathtracing_slab_intersect' ] = `
-//--------------------------------------------------------------------------------------
-float SlabIntersect( float radius, vec3 normal, Ray r, out vec3 n )
-//--------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------
+float SlabIntersect( float radius, vec3 normal, vec3 rayOrigin, vec3 rayDirection, out vec3 n )
+//---------------------------------------------------------------------------------------------
 {
-	n = dot(normal, r.direction) < 0.0 ? normal : -normal;
-	float rad = dot(r.origin, n) > radius ? radius : -radius; 
-	float denom = dot(n, r.direction);
-	vec3 pOrO = (rad * n) - r.origin; 
+	n = dot(normal, rayDirection) < 0.0 ? normal : -normal;
+	float rad = dot(rayOrigin, n) > radius ? radius : -radius; 
+	float denom = dot(n, rayDirection);
+	vec3 pOrO = (rad * n) - rayOrigin; 
 	float t = dot(pOrO, n) / denom;
 	return t > 0.0 ? t : INFINITY;
 }
@@ -205,14 +195,15 @@ void solveQuadratic(float A, float B, float C, out float t0, out float t1)
 	t0 = neg_halfB - u;
 	t1 = neg_halfB + u;
 }
-//-----------------------------------------------------------------------
-float SphereIntersect( float rad, vec3 pos, Ray ray )
-//-----------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+float SphereIntersect( float rad, vec3 pos, vec3 rayOrigin, vec3 rayDirection )
+//-----------------------------------------------------------------------------
 {
 	float t0, t1;
-	vec3 L = ray.origin - pos;
-	float a = dot( ray.direction, ray.direction );
-	float b = 2.0 * dot( ray.direction, L );
+	vec3 L = rayOrigin - pos;
+	float a = dot( rayDirection, rayDirection );
+	float b = 2.0 * dot( rayDirection, L );
 	float c = dot( L, L ) - (rad * rad);
 	solveQuadratic(a, b, c, t0, t1);
 	return t0 > 0.0 ? t0 : t1 > 0.0 ? t1 : INFINITY;
@@ -231,10 +222,8 @@ void Sphere_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t1, out vec
 	float b = 2.0 * dot(rd, ro);
 	float c = dot(ro, ro) - 1.0;
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	n0 = vec3(2.0 * hit.x, 2.0 * hit.y, 2.0 * hit.z);
-
 	hit = ro + rd * t1;
 	n1 = vec3(2.0 * hit.x, 2.0 * hit.y, 2.0 * hit.z);
 }
@@ -255,15 +244,12 @@ void Cylinder_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t1, out v
     	float b = 2.0 * (rd.x * ro.x + rd.z * ro.z);
     	float c = (ro.x * ro.x + ro.z * ro.z) - 1.0;
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (abs(hit.y) > 1.0) ? 0.0 : t0;
 	n0 = vec3(2.0 * hit.x, 0.0, 2.0 * hit.z);
-
 	hit = ro + rd * t1;
 	t1 = (abs(hit.y) > 1.0) ? 0.0 : t1;
 	n1 = vec3(2.0 * hit.x, 0.0, 2.0 * hit.z);
-
 	// intersect top and bottom unit-radius disk caps
 	if (rd.y < 0.0)
 	{
@@ -325,14 +311,12 @@ void Cone_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out float t1, 
 	hit = ro + rd * t1;
 	t1 = (abs(hit.y) > 1.0) ? 0.0 : t1; // invalidate t1 if it's outside truncated cone's height bounds
 	n1 = vec3(2.0 * hit.x * j, 2.0 * (h - hit.y) * (k * 0.25), 2.0 * hit.z * j);
-
 	// since the infinite double-cone is artificially cut off, if t0 intersection was invalidated, try t1
 	if (t0 == 0.0)
 	{
 		t0 = t1;
 		n0 = n1;
 	}
-
 	// intersect top and bottom disk caps
 	if (rd.y < 0.0)
 	{
@@ -352,7 +336,6 @@ void Cone_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out float t1, 
 		dr0 = 1.0; // bottom cap is unit radius
 		dr1 = (1.0 - k) * (1.0 - k);// top cap's size is relative to k
 	}
-
 	hit = ro + rd * d0;
 	if (hit.x * hit.x + hit.z * hit.z <= dr0)
 	{
@@ -394,7 +377,6 @@ void ConicalPrism_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out fl
     	float b = 2.0 * (j * rd.x * ro.x - (k * 0.25) * rd.y * (ro.y - h));
     	float c = j * ro.x * ro.x - (k * 0.25) * (ro.y - h) * (ro.y - h);
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (abs(hit.y) > 1.0 || abs(hit.z) > 1.0) ? 0.0 : t0; // invalidate t0 if it's outside unit radius bounds
 	n0 = vec3(2.0 * hit.x * j, 2.0 * (hit.y - h) * -(k * 0.25), 0.0);
@@ -410,7 +392,6 @@ void ConicalPrism_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out fl
 		t0 = t1;
 		n0 = n1;
 	}
-
 	// intersect top and bottom base rectangles
 	if (rd.y < 0.0)
 	{
@@ -430,7 +411,6 @@ void ConicalPrism_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out fl
 		dr0 = 1.0; // bottom cap is unit radius
 		dr1 = 1.0 - (k);// top cap's size is relative to k
 	}
-
 	hit = ro + rd * d0;
 	if (abs(hit.x) <= dr0 && abs(hit.z) <= 1.0)
 	{
@@ -445,7 +425,6 @@ void ConicalPrism_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out fl
 		t1 = d1;
 		n1 = dn1;
 	}
-
 	// intersect conical-shaped front and back wall pieces
 	if (rd.z < 0.0)
 	{
@@ -474,7 +453,6 @@ void ConicalPrism_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out fl
 		t0 = d0;
 		n0 = dn0;
 	}
-
 	hit = ro + rd * d1;
 	if (abs(hit.x) <= 1.0 && abs(hit.y) <= 1.0 && (j * hit.x * hit.x - k * 0.25 * (hit.y - h) * (hit.y - h)) <= 0.0) // y is a quadratic (conical) function of x
 	{
@@ -503,11 +481,9 @@ void Paraboloid_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t1, out
     	float b = 2.0 * (rd.x * ro.x + rd.z * ro.z) + k * rd.y;
     	float c = ro.x * ro.x + ro.z * ro.z + k * (ro.y - 1.0);
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (abs(hit.y) > 1.0) ? 0.0 : t0; // invalidate t0 if it's outside unit radius bounds
 	n0 = vec3(2.0 * hit.x, 1.0 * k, 2.0 * hit.z);
-
 	hit = ro + rd * t1;
 	t1 = (abs(hit.y) > 1.0) ? 0.0 : t1; // invalidate t1 if it's outside unit radius bounds
 	n1 = vec3(2.0 * hit.x, 1.0 * k, 2.0 * hit.z);
@@ -561,7 +537,6 @@ void ParabolicPrism_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t1,
     	float b = 2.0 * (rd.x * ro.x) + k * rd.y;
     	float c = ro.x * ro.x + k * (ro.y - 1.0);
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (hit.y < -1.0 || abs(hit.z) > 1.0) ? 0.0 : t0; // invalidate t0 if it's outside unit radius bounds
 	n0 = vec3(2.0 * hit.x, 1.0 * k, 0.0);
@@ -596,7 +571,6 @@ void ParabolicPrism_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t1,
 			n0 = vec3(0,-1,0);
 		}
 	}
-
 	// intersect parabola-shaped front and back wall pieces
 	if (rd.z < 0.0)
 	{
@@ -619,7 +593,6 @@ void ParabolicPrism_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t1,
 		t0 = d0;
 		n0 = dn0;
 	}
-
 	hit = ro + rd * d1;
 	if (hit.y >= -1.0 && (hit.x * hit.x + k * (hit.y - 1.0)) <= 0.0) // y is a parabolic function of x
 	{
@@ -651,11 +624,9 @@ void Hyperboloid1Sheet_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, o
 	float b = 2.0 * (k * rd.x * ro.x + k * rd.z * ro.z - j * rd.y * ro.y);
 	float c = (k * ro.x * ro.x + k * ro.z * ro.z - j * ro.y * ro.y) - 1.0;
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (hit.y > 1.0 || hit.y < 0.0) ? 0.0 : t0; // invalidate t0 if it's outside unit radius bounds of top half
 	n0 = vec3(2.0 * hit.x * k, 2.0 * -hit.y * j, 2.0 * hit.z * k);
-
 	hit = ro + rd * t1;
 	t1 = (hit.y > 1.0 || hit.y < 0.0) ? 0.0 : t1; // invalidate t1 if it's outside unit radius bounds of top half
 	n1 = vec3(2.0 * hit.x * k, 2.0 * -hit.y * j, 2.0 * hit.z * k);
@@ -666,7 +637,6 @@ void Hyperboloid1Sheet_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, o
 		t0 = t1;
 		n0 = n1;
 	}
-
 	if (rd.y < 0.0)
 	{
 		d0 = (ro.y - 1.0) / -rd.y;
@@ -711,7 +681,6 @@ void Hyperboloid2Sheets_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, 
 	vec3 hit;
 	float d = 0.0;
 	vec3 dn;
-
 	// implicit equation of a hyperboloid of 2 sheets (2 rounded v shapes that are mirrored and pointing at each other)
 	// -x^2 - z^2 + y^2 - 1 = 0
 	// for CSG purposes, we artificially truncate the hyperboloid at the middle, so that only 1 sheet (the top sheet) of the 2 mirrored sheets remains...
@@ -725,11 +694,9 @@ void Hyperboloid2Sheets_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, 
 	float b = 2.0 * (-k * rd.x * ro.x - k * rd.z * ro.z + j * rd.y * ro.y);
 	float c = (-k * ro.x * ro.x - k * ro.z * ro.z + j * ro.y * ro.y) - 1.0;
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (hit.y > 1.0 || hit.y < 0.0) ? 0.0 : t0; // invalidate t0 if it's outside unit radius bounds of top half
 	n0 = vec3(2.0 * -hit.x * k, 2.0 * hit.y * j, 2.0 * -hit.z * k);
-
 	hit = ro + rd * t1;
 	t1 = (hit.y > 1.0 || hit.y < 0.0) ? 0.0 : t1; // invalidate t1 if it's outside unit radius bounds of top half
 	n1 = vec3(2.0 * -hit.x * k, 2.0 * hit.y * j, 2.0 * -hit.z * k);
@@ -740,7 +707,6 @@ void Hyperboloid2Sheets_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, 
 		t0 = t1;
 		n0 = n1;
 	}
-
 	// intersect unit-radius disk located at top opening of unit hyperboloid shape
 	d = (ro.y - 1.0) / -rd.y;
 	hit = ro + rd * d;
@@ -787,11 +753,9 @@ void HyperbolicPrism1Sheet_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t
 	float b = 2.0 * (k * rd.x * ro.x - j * rd.y * ro.y);
 	float c = (k * ro.x * ro.x - j * ro.y * ro.y) - 1.0;
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (hit.y > 1.0 || hit.y < 0.0 || abs(hit.z) > 1.0) ? 0.0 : t0; // invalidate t0 if it's outside unit radius bounds of top half
 	n0 = vec3(2.0 * hit.x * k, 2.0 * -hit.y * j, 0.0);
-
 	hit = ro + rd * t1;
 	t1 = (hit.y > 1.0 || hit.y < 0.0 || abs(hit.z) > 1.0) ? 0.0 : t1; // invalidate t1 if it's outside unit radius bounds of top half
 	n1 = vec3(2.0 * hit.x * k, 2.0 * -hit.y * j, 0.0);
@@ -802,7 +766,6 @@ void HyperbolicPrism1Sheet_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t
 		t0 = t1;
 		n0 = n1;
 	}
-
 	// intersect top and bottom base rectangles
 	if (rd.y < 0.0)
 	{
@@ -840,7 +803,6 @@ void HyperbolicPrism1Sheet_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t
 		t1 = d1;
 		n1 = dn1;
 	}
-
 	// intersect hyperbolic-shaped front and back wall pieces
 	if (rd.z < 0.0)
 	{
@@ -869,7 +831,6 @@ void HyperbolicPrism1Sheet_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t
 		t0 = d0;
 		n0 = dn0;
 	}
-
 	hit = ro + rd * d1;
 	if (abs(hit.x) <= 1.0 && hit.y >= 0.0 && hit.y <= 1.0 && (k * hit.x * hit.x - j * hit.y * hit.y - 1.0) <= 0.0) // y is a quadratic (hyperbolic) function of x
 	{
@@ -904,11 +865,9 @@ void HyperbolicPrism2Sheets_CSG_Intersect( float k, vec3 ro, vec3 rd, out float 
 	float b = 2.0 * (-k * rd.x * ro.x + j * rd.y * ro.y);
 	float c = (-k * ro.x * ro.x + j * ro.y * ro.y) - 1.0;
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (hit.y > 1.0 || hit.y < 0.0 || abs(hit.z) > 1.0) ? 0.0 : t0; // invalidate t0 if it's outside unit radius bounds of top half
 	n0 = vec3(2.0 * -hit.x * k, 2.0 * hit.y * j, 0.0);
-
 	hit = ro + rd * t1;
 	t1 = (hit.y > 1.0 || hit.y < 0.0 || abs(hit.z) > 1.0) ? 0.0 : t1; // invalidate t1 if it's outside unit radius bounds of top half
 	n1 = vec3(2.0 * -hit.x * k, 2.0 * hit.y * j, 0.0);
@@ -919,7 +878,6 @@ void HyperbolicPrism2Sheets_CSG_Intersect( float k, vec3 ro, vec3 rd, out float 
 		t0 = t1;
 		n0 = n1;
 	}
-
 	// intersect unit-radius square located at top opening of hyperbolic prism shape
 	d = (ro.y - 1.0) / -rd.y;
 	hit = ro + rd * d;
@@ -938,7 +896,6 @@ void HyperbolicPrism2Sheets_CSG_Intersect( float k, vec3 ro, vec3 rd, out float 
 			n0 = vec3(0,1,0);
 		}
 	}
-
 	// intersect hyperbolic v-shaped front and back wall pieces
 	if (rd.z < 0.0)
 	{
@@ -967,7 +924,6 @@ void HyperbolicPrism2Sheets_CSG_Intersect( float k, vec3 ro, vec3 rd, out float 
 		t0 = d0;
 		n0 = dn0;
 	}
-
 	hit = ro + rd * d1;
 	if (abs(hit.x) <= 1.0 && hit.y >= 0.0 && hit.y <= 1.0 && (-k * hit.x * hit.x + j * hit.y * hit.y - 1.0) >= 0.0) // y is a quadratic (hyperbolic) function of x
 	{
@@ -991,15 +947,12 @@ void Capsule_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out float t
     	float b = 2.0 * (rd.x * ro.x + rd.z * ro.z);
     	float c = (ro.x * ro.x + ro.z * ro.z) - 1.0;
 	solveQuadratic(a, b, c, t0, t1);
-
 	hit = ro + rd * t0;
 	t0 = (abs(hit.y) > k) ? 0.0 : t0;
 	n0 = vec3(2.0 * hit.x, 0.0, 2.0 * hit.z);
-
 	hit = ro + rd * t1;
 	t1 = (abs(hit.y) > k) ? 0.0 : t1;
 	n1 = vec3(2.0 * hit.x, 0.0, 2.0 * hit.z);
-
 	// intersect unit-radius sphere located at top opening of cylinder
 	vec3 s0pos = vec3(0, k, 0);
 	vec3 L = ro - s0pos;
@@ -1007,15 +960,12 @@ void Capsule_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out float t
 	b = 2.0 * dot(rd, L);
 	c = dot(L, L) - 1.0;
 	solveQuadratic(a, b, c, s0t0, s0t1);
-
 	hit = ro + rd * s0t0;
 	s0n0 = vec3(2.0 * hit.x, 2.0 * (hit.y - s0pos.y), 2.0 * hit.z);
 	s0t0 = (hit.y < k) ? 0.0 : s0t0;
-
 	hit = ro + rd * s0t1;
 	s0n1 = vec3(2.0 * hit.x, 2.0 * (hit.y - s0pos.y), 2.0 * hit.z);
 	s0t1 = (hit.y < k) ? 0.0 : s0t1;
-
 	// now intersect unit-radius sphere located at bottom opening of cylinder
 	vec3 s1pos = vec3(0, -k, 0);
 	L = ro - s1pos;
@@ -1023,15 +973,12 @@ void Capsule_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out float t
 	b = 2.0 * dot(rd, L);
 	c = dot(L, L) - 1.0;
 	solveQuadratic(a, b, c, s1t0, s1t1);
-
 	hit = ro + rd * s1t0;
 	s1n0 = vec3(2.0 * hit.x, 2.0 * (hit.y - s1pos.y), 2.0 * hit.z);
 	s1t0 = (hit.y > -k) ? 0.0 : s1t0;
-
 	hit = ro + rd * s1t1;
 	s1n1 = vec3(2.0 * hit.x, 2.0 * (hit.y - s1pos.y), 2.0 * hit.z);
 	s1t1 = (hit.y > -k) ? 0.0 : s1t1;
-
 	if (s0t0 != 0.0)
 	{
 		t0 = s0t0;
@@ -1071,23 +1018,19 @@ void Box_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t1, out vec3 n
 	t1 = min( min(tmax.x, tmax.y), tmax.z);
 	n0 = -sign(rd) * step(tmin.yzx, tmin) * step(tmin.zxy, tmin);
 	n1 = -sign(rd) * step(tmax, tmax.yzx) * step(tmax, tmax.zxy);
-
 	if (t0 > t1) // invalid intersection
 		t0 = t1 = 0.0;
 }
 `;
 
 /* THREE.ShaderChunk[ 'pathtracing_convexpolyhedron_csg_intersect' ] = `
-
 // This convexPolyhedron routine works with any number of user-defined cutting planes (a plane is defined by its unit normal (vec3) and an offset distance (float) from the shape's origin along this normal)
 // Examples of shapes that can be made from a list of pure convex cutting planes: cube, frustum, triangular pyramid (tetrahedron), rectangular pyramid, triangular bipyramid (hexahedron), rectangular bipyramid (octahedron), other Platonic/Archimedean solids, etc.)
 // Although I am proud of coming up with this ray casting / ray intersection algo for arbitrary mathematical convex polyhedra, and it does indeed give pixel-perfect sharp cut convex polygon faces (tris, quads, pentagons, hexagons, etc), 
 // I'm not currently using it because it runs too slowly on mobile, probably due to the nested for loops that have to compare each plane against all of its neighbor planes: big O(N-squared) - ouch! Hopefully I can optimize someday!
 // -Erich  erichlof on GitHub
-
 const int numPlanes = 6;
 vec4 convex_planes[numPlanes];
-
 //------------------------------------------------------------------------------------------------------------
 void ConvexPolyhedron_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t1, out vec3 n0, out vec3 n1 )
 //------------------------------------------------------------------------------------------------------------
@@ -1096,7 +1039,6 @@ void ConvexPolyhedron_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t
 	float smallestT = INFINITY;
 	float largestT = -INFINITY;
 	float t = 0.0;
-
 	// triangular bipyramid (hexahedron) / set numPlanes = 6 above
 	convex_planes[0] = vec4(normalize(vec3(1, 1, -1)), 0.5);
 	convex_planes[1] = vec4(normalize(vec3(-1, 1, -1)), 0.5);
@@ -1104,7 +1046,6 @@ void ConvexPolyhedron_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t
 	convex_planes[3] = vec4(normalize(vec3(0, -1, 1)), 0.5);
 	convex_planes[4] = vec4(normalize(vec3(1, -1, -1)), 0.5);
 	convex_planes[5] = vec4(normalize(vec3(-1, -1, -1)), 0.5);
-
 	// rectangular bipyramid (octahedron) / set numPlanes = 8 above
 	// convex_planes[0] = vec4(normalize(vec3(1, 1, 0)), 0.5);
 	// convex_planes[1] = vec4(normalize(vec3(-1, 1, 0)), 0.5);
@@ -1114,8 +1055,6 @@ void ConvexPolyhedron_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t
 	// convex_planes[5] = vec4(normalize(vec3(-1, -1, 0)), 0.5);
 	// convex_planes[6] = vec4(normalize(vec3(0, -1, 1)), 0.5);
 	// convex_planes[7] = vec4(normalize(vec3(0, -1, -1)), 0.5);
-
-
 	for (int i = 0; i < numPlanes; i++)
 	{
 		t = (-dot(convex_planes[i].xyz, ro) + convex_planes[i].w) / dot(convex_planes[i].xyz, rd);
@@ -1125,7 +1064,6 @@ void ConvexPolyhedron_CSG_Intersect( vec3 ro, vec3 rd, out float t0, out float t
 			if (i != j)
 				t = dot(convex_planes[j].xyz, (hit - (convex_planes[j].xyz * convex_planes[j].w))) > 0.0 ? 0.0 : t;
 		}
-
 		if (t == 0.0) 
 			continue;
 		
@@ -1155,7 +1093,6 @@ void PyramidFrustum_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out 
 	float d0, d1, dr0, dr1;
 	float xt0, xt1, zt0, zt1;
 	d0 = d1 = dr0 = dr1 = xt0 = xt1 = zt0 = zt1 = 0.0;
-
 	// first, intersect left and right sides of pyramid/frustum
 	// start with implicit equation of a double-cone extending infinitely in +Y and -Y directions
 	// x^2 + z^2 - y^2 = 0
@@ -1172,7 +1109,6 @@ void PyramidFrustum_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out 
     	float b = 2.0 * (j * rd.x * ro.x - (k * 0.25) * rd.y * (ro.y - h));
     	float c = j * ro.x * ro.x - (k * 0.25) * (ro.y - h) * (ro.y - h);
 	solveQuadratic(a, b, c, xt0, xt1);
-
 	hit = ro + rd * xt0;
 	xt0 = (abs(hit.x) > 1.0 || abs(hit.z) > 1.0 || hit.y > 1.0 || (j * hit.z * hit.z - k * 0.25 * (hit.y - h) * (hit.y - h)) > 0.0) ? 0.0 : xt0;
 	xn0 = vec3(2.0 * hit.x * j, 2.0 * (hit.y - h) * -(k * 0.25), 0.0);
@@ -1189,7 +1125,6 @@ void PyramidFrustum_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out 
 		xn0 = xn1;
 		xt1 = 0.0; // invalidate xt1 (see sorting algo below)
 	}
-
 	// now intersect front and back sides of pyramid/frustum
 	// start with implicit equation of a double-cone extending infinitely in +Y and -Y directions
 	// x^2 + z^2 - y^2 = 0
@@ -1199,7 +1134,6 @@ void PyramidFrustum_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out 
     	b = 2.0 * (j * rd.z * ro.z - (k * 0.25) * rd.y * (ro.y - h));
     	c = j * ro.z * ro.z - (k * 0.25) * (ro.y - h) * (ro.y - h);
 	solveQuadratic(a, b, c, zt0, zt1);
-
 	hit = ro + rd * zt0;
 	zt0 = (abs(hit.x) > 1.0 || abs(hit.z) > 1.0 || hit.y > 1.0 || (j * hit.x * hit.x - k * 0.25 * (hit.y - h) * (hit.y - h)) > 0.0) ? 0.0 : zt0;
 	zn0 = vec3(0.0, 2.0 * (hit.y - h) * -(k * 0.25), 2.0 * hit.z * j);
@@ -1207,7 +1141,6 @@ void PyramidFrustum_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out 
 	hit = ro + rd * zt1;
 	zt1 = (abs(hit.x) > 1.0 || abs(hit.z) > 1.0 || hit.y > 1.0 || (j * hit.x * hit.x - k * 0.25 * (hit.y - h) * (hit.y - h)) > 0.0) ? 0.0 : zt1;
 	zn1 = vec3(0.0, 2.0 * (hit.y - h) * -(k * 0.25), 2.0 * hit.z * j);
-
 	// since the infinite double-cone shape is artificially cut off at the top and bottom,
 	// if zt0 intersection was invalidated above, try zt1
 	if (zt0 == 0.0)
@@ -1216,7 +1149,6 @@ void PyramidFrustum_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out 
 		zn0 = zn1;
 		zt1 = 0.0; // invalidate zt1 (see sorting algo below)
 	}
-
 	// sort valid intersections of 4 sides of pyramid/frustum thus far
 	if (xt1 != 0.0) // the only way xt1 can be valid (not 0), is if xt0 was also valid (not 0) (see above)
 	{
@@ -1279,7 +1211,6 @@ void PyramidFrustum_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out 
 		dr0 = 1.0; // bottom square is unit radius
 		dr1 = 1.0 - k;// top square's size is relative to k
 	}
-
 	hit = ro + rd * d0;
 	if (abs(hit.x) <= dr0 && abs(hit.z) <= dr0)
 	{
@@ -1294,7 +1225,6 @@ void PyramidFrustum_CSG_Intersect( float k, vec3 ro, vec3 rd, out float t0, out 
 		t1 = d1;
 		n1 = dn1;
 	}
-
 }
 `;
 
@@ -1692,41 +1622,41 @@ float HyperbolicParaboloidParamIntersect( float yMinPercent, float yMaxPercent, 
 `;
 
 THREE.ShaderChunk[ 'pathtracing_ellipsoid_intersect' ] = `
-//-----------------------------------------------------------------------
-float EllipsoidIntersect( vec3 radii, vec3 pos, Ray r )
-//-----------------------------------------------------------------------
+//---------------------------------------------------------------------------------
+float EllipsoidIntersect( vec3 radii, vec3 pos, vec3 rayOrigin, vec3 rayDirection )
+//---------------------------------------------------------------------------------
 {
 	float t0, t1;
-	vec3 oc = r.origin - pos;
+	vec3 oc = rayOrigin - pos;
 	vec3 oc2 = oc*oc;
-	vec3 ocrd = oc*r.direction;
-	vec3 rd2 = r.direction*r.direction;
+	vec3 ocrd = oc*rayDirection;
+	vec3 rd2 = rayDirection*rayDirection;
 	vec3 invRad = 1.0/radii;
 	vec3 invRad2 = invRad*invRad;
-	
+
 	// quadratic equation coefficients
 	float a = dot(rd2, invRad2);
 	float b = 2.0*dot(ocrd, invRad2);
 	float c = dot(oc2, invRad2) - 1.0;
 	solveQuadratic(a, b, c, t0, t1);
-	
+
 	return t0 > 0.0 ? t0 : t1 > 0.0 ? t1 : INFINITY;
 }
 `;
 
 THREE.ShaderChunk[ 'pathtracing_opencylinder_intersect' ] = `
-//---------------------------------------------------------------------------
-float OpenCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
-//---------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
+float OpenCylinderIntersect( vec3 p0, vec3 p1, float rad, vec3 rayOrigin, vec3 rayDirection, out vec3 n )
+//-------------------------------------------------------------------------------------------------------
 {
 	float r2=rad*rad;
 	
 	vec3 dp=p1-p0;
 	vec3 dpt=dp/dot(dp,dp);
 	
-	vec3 ao=r.origin-p0;
+	vec3 ao=rayOrigin-p0;
 	vec3 aoxab=cross(ao,dpt);
-	vec3 vxab=cross(r.direction,dpt);
+	vec3 vxab=cross(rayDirection,dpt);
 	float ab2=dot(dpt,dpt);
 	float a=2.0*dot(vxab,vxab);
 	float ra=1.0/a;
@@ -1748,7 +1678,7 @@ float OpenCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
 	float ct;
 	if (t0 > 0.0)
 	{
-		ip=r.origin+r.direction*t0;
+		ip=rayOrigin+rayDirection*t0;
 		lp=ip-p0;
 		ct=dot(lp,dpt);
 		if((ct>0.0)&&(ct<1.0))
@@ -1760,7 +1690,7 @@ float OpenCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
 	
 	if (t1 > 0.0)
 	{
-		ip=r.origin+r.direction*t1;
+		ip=rayOrigin+rayDirection*t1;
 		lp=ip-p0;
 		ct=dot(lp,dpt);
 		if((ct>0.0)&&(ct<1.0))
@@ -1775,18 +1705,18 @@ float OpenCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
 `;
 
 THREE.ShaderChunk[ 'pathtracing_cappedcylinder_intersect' ] = `
-//-----------------------------------------------------------------------------
-float CappedCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
-//-----------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------
+float CappedCylinderIntersect( vec3 p0, vec3 p1, float rad, vec3 rayOrigin, vec3 rayDirection, out vec3 n )
+//---------------------------------------------------------------------------------------------------------
 {
 	float r2=rad*rad;
 	
 	vec3 dp=p1-p0;
 	vec3 dpt=dp/dot(dp,dp);
 	
-	vec3 ao=r.origin-p0;
+	vec3 ao=rayOrigin-p0;
 	vec3 aoxab=cross(ao,dpt);
-	vec3 vxab=cross(r.direction,dpt);
+	vec3 vxab=cross(rayDirection,dpt);
 	float ab2=dot(dpt,dpt);
 	float a=2.0*dot(vxab,vxab);
 	float ra=1.0/a;
@@ -1811,12 +1741,12 @@ float CappedCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
 	// Cylinder caps
 	// disk0
 	vec3 diskNormal = normalize(dp);
-	float denom = dot(diskNormal, r.direction);
-	vec3 pOrO = p0 - r.origin;
+	float denom = dot(diskNormal, rayDirection);
+	vec3 pOrO = p0 - rayOrigin;
 	float tDisk0 = dot(pOrO, diskNormal) / denom;
 	if (tDisk0 > 0.0)
 	{
-		vec3 intersectPos = r.origin + r.direction * tDisk0;
+		vec3 intersectPos = rayOrigin + rayDirection * tDisk0;
 		vec3 v = intersectPos - p0;
 		float d2 = dot(v,v);
 		if (d2 <= r2)
@@ -1827,12 +1757,12 @@ float CappedCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
 	}
 	
 	// disk1
-	denom = dot(diskNormal, r.direction);
-	pOrO = p1 - r.origin;
+	denom = dot(diskNormal, rayDirection);
+	pOrO = p1 - rayOrigin;
 	float tDisk1 = dot(pOrO, diskNormal) / denom;
 	if (tDisk1 > 0.0)
 	{
-		vec3 intersectPos = r.origin + r.direction * tDisk1;
+		vec3 intersectPos = rayOrigin + rayDirection * tDisk1;
 		vec3 v = intersectPos - p1;
 		float d2 = dot(v,v);
 		if (d2 <= r2 && tDisk1 < result)
@@ -1845,7 +1775,7 @@ float CappedCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
 	// Cylinder body
 	if (t1 > 0.0)
 	{
-		ip=r.origin+r.direction*t1;
+		ip=rayOrigin+rayDirection*t1;
 		lp=ip-p0;
 		ct=dot(lp,dpt);
 		if(ct>0.0 && ct<1.0 && t1<result)
@@ -1857,7 +1787,7 @@ float CappedCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
 	
 	if (t0 > 0.0)
 	{
-		ip=r.origin+r.direction*t0;
+		ip=rayOrigin+rayDirection*t0;
 		lp=ip-p0;
 		ct=dot(lp,dpt);
 		if(ct>0.0 && ct<1.0 && t0<result)
@@ -1872,17 +1802,16 @@ float CappedCylinderIntersect( vec3 p0, vec3 p1, float rad, Ray r, out vec3 n )
 `;
 
 THREE.ShaderChunk[ 'pathtracing_cone_intersect' ] = `
-//----------------------------------------------------------------------------
-float ConeIntersect( vec3 p0, float r0, vec3 p1, float r1, Ray r, out vec3 n )
-//----------------------------------------------------------------------------   
+//--------------------------------------------------------------------------------------------------------
+float ConeIntersect( vec3 p0, float r0, vec3 p1, float r1, vec3 rayOrigin, vec3 rayDirection, out vec3 n )
+//-------------------------------------------------------------------------------------------------------- 
 {
 	r0 += 0.1;
 	vec3 locX;
 	vec3 locY;
 	vec3 locZ=-(p1-p0)/(1.0 - r1/r0);
 	
-	Ray ray = r;
-	ray.origin-=p0-locZ;
+	rayOrigin-=p0-locZ;
 	
 	if(abs(locZ.x)<abs(locZ.y))
 		locX=vec3(1,0,0);
@@ -1899,16 +1828,16 @@ float ConeIntersect( vec3 p0, float r0, vec3 p1, float r1, Ray r, out vec3 n )
 	tm[1]=locY;
 	tm[2]=locZ;
 	
-	ray.direction*=tm;
-	ray.origin*=tm;
+	rayDirection*=tm;
+	rayOrigin*=tm;
 	
-	float dx=ray.direction.x;
-	float dy=ray.direction.y;
-	float dz=ray.direction.z;
+	float dx=rayDirection.x;
+	float dy=rayDirection.y;
+	float dz=rayDirection.z;
 	
-	float x0=ray.origin.x;
-	float y0=ray.origin.y;
-	float z0=ray.origin.z;
+	float x0=rayOrigin.x;
+	float y0=rayOrigin.y;
+	float z0=rayOrigin.z;
 	
 	float x02=x0*x0;
 	float y02=y0*y0;
@@ -1935,8 +1864,8 @@ float ConeIntersect( vec3 p0, float r0, vec3 p1, float r1, Ray r, out vec3 n )
 		
 	float t0=(-x0*dx+z0*dz-y0*dy-sqrt(abs(det)))/(dx2-dz2+dy2);
 	float t1=(-x0*dx+z0*dz-y0*dy+sqrt(abs(det)))/(dx2-dz2+dy2);
-	vec3 pt0=ray.origin+t0*ray.direction;
-	vec3 pt1=ray.origin+t1*ray.direction;
+	vec3 pt0=rayOrigin+t0*rayDirection;
+	vec3 pt1=rayOrigin+t1*rayDirection;
 	
 	if(t0>0.0 && pt0.z>r1/r0 && pt0.z<1.0)
 	{
@@ -1965,9 +1894,9 @@ float ConeIntersect( vec3 p0, float r0, vec3 p1, float r1, Ray r, out vec3 n )
 
 
 THREE.ShaderChunk[ 'pathtracing_capsule_intersect' ] = `
-//-------------------------------------------------------------------------------
-float CapsuleIntersect( vec3 p0, float r0, vec3 p1, float r1, Ray r, out vec3 n )
-//-------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------
+float CapsuleIntersect( vec3 p0, float r0, vec3 p1, float r1, vec3 rayOrigin, vec3 rayDirection, out vec3 n )
+//-----------------------------------------------------------------------------------------------------------
 {
 	/*
 	// used for ConeIntersect below, if different radius sphere end-caps are desired
@@ -1989,24 +1918,24 @@ float CapsuleIntersect( vec3 p0, float r0, vec3 p1, float r1, Ray r, out vec3 n 
 	float t1;
 	vec3 uv1;
 	vec3 n1;
-	//t1 = ConeIntersect(coneP0,cr0,coneP1,cr1,r,n1);
-	t1 = OpenCylinderIntersect(p0,p1,r0,r,n1);
+	//t1 = ConeIntersect(coneP0,cr0,coneP1,cr1,rayOrigin, rayDirection,n1);
+	t1 = OpenCylinderIntersect(p0,p1,r0,rayOrigin, rayDirection,n1);
 	if(t1<t0)
 	{
 		t0=t1;
 		n=n1;
 	}
-	t1 = SphereIntersect(r0,p0,r);
+	t1 = SphereIntersect(r0,p0,rayOrigin, rayDirection);
 	if(t1<t0)
 	{
 		t0=t1;
-		n=(r.origin + r.direction * t1) - p0;
+		n=(rayOrigin + rayDirection * t1) - p0;
 	}
-	t1 = SphereIntersect(r1,p1,r);
+	t1 = SphereIntersect(r1,p1,rayOrigin, rayDirection);
 	if(t1<t0)
 	{
 		t0=t1;
-		n=(r.origin + r.direction * t1) - p1;
+		n=(rayOrigin + rayDirection * t1) - p1;
 	}
 	    
 	return t0;
@@ -2014,12 +1943,12 @@ float CapsuleIntersect( vec3 p0, float r0, vec3 p1, float r1, Ray r, out vec3 n 
 `;
 
 THREE.ShaderChunk[ 'pathtracing_paraboloid_intersect' ] = `
-//------------------------------------------------------------------------------
-float ParaboloidIntersect( float rad, float height, vec3 pos, Ray r, out vec3 n )
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------
+float ParaboloidIntersect( float rad, float height, vec3 pos, vec3 rayOrigin, vec3 rayDirection, out vec3 n )
+//-----------------------------------------------------------------------------------------------------------
 {
-	vec3 rd = r.direction;
-	vec3 ro = r.origin - pos;
+	vec3 rd = rayDirection;
+	vec3 ro = rayOrigin - pos;
 	float k = height / (rad * rad);
 	
 	// quadratic equation coefficients
@@ -2058,12 +1987,12 @@ float ParaboloidIntersect( float rad, float height, vec3 pos, Ray r, out vec3 n 
 `;
 
 THREE.ShaderChunk[ 'pathtracing_hyperboloid_intersect' ] = `
-//-------------------------------------------------------------------------------
-float HyperboloidIntersect( float rad, float height, vec3 pos, Ray r, out vec3 n )
-//-------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
+float HyperboloidIntersect( float rad, float height, vec3 pos, vec3 rayOrigin, vec3 rayDirection, out vec3 n )
+//------------------------------------------------------------------------------------------------------------
 {
-	vec3 rd = r.direction;
-	vec3 ro = r.origin - pos;
+	vec3 rd = rayDirection;
+	vec3 ro = rayOrigin - pos;
 	float k = height / (rad * rad);
 	
 	// quadratic equation coefficients
@@ -2102,12 +2031,12 @@ float HyperboloidIntersect( float rad, float height, vec3 pos, Ray r, out vec3 n
 `;
 
 THREE.ShaderChunk[ 'pathtracing_hyperbolic_paraboloid_intersect' ] = `
-//-----------------------------------------------------------------------------------------
-float HyperbolicParaboloidIntersect( float rad, float height, vec3 pos, Ray r, out vec3 n )
-//-----------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+float HyperbolicParaboloidIntersect( float rad, float height, vec3 pos, vec3 rayOrigin, vec3 rayDirection, out vec3 n )
+//---------------------------------------------------------------------------------------------------------------------
 {
-	vec3 rd = r.direction;
-	vec3 ro = r.origin - pos;
+	vec3 rd = rayDirection;
+	vec3 ro = rayOrigin - pos;
 	float k = height / (rad * rad);
 	
 	// quadratic equation coefficients
@@ -2161,21 +2090,21 @@ vec3 calcNormal_Torus( in vec3 pos )
 /* 
 Thanks to koiava for the ray marching strategy! https://www.shadertoy.com/user/koiava 
 */
-float TorusIntersect( float rad0, float rad1, Ray r )
+float TorusIntersect( float rad0, float rad1, vec3 rayOrigin, vec3 rayDirection )
 {	
 	vec3 n;
-	float d = CappedCylinderIntersect( vec3(0,rad1,0), vec3(0,-rad1,0), rad0+rad1, r, n );
+	float d = CappedCylinderIntersect( vec3(0,rad1,0), vec3(0,-rad1,0), rad0+rad1, rayOrigin, rayDirection, n );
 	if (d == INFINITY)
 		return INFINITY;
 	
-	vec3 pos = r.origin;
+	vec3 pos = rayOrigin;
 	float t = 0.0;
 	float torusFar = d + (rad0 * 2.0) + (rad1 * 2.0);
 	for (int i = 0; i < 200; i++)
 	{
 		d = map_Torus(pos);
 		if (d < 0.001 || t > torusFar) break;
-		pos += r.direction * d;
+		pos += rayDirection * d;
 		t += d;
 	}
 	
@@ -2183,12 +2112,12 @@ float TorusIntersect( float rad0, float rad1, Ray r )
 }
 /*
 // borrowed from iq: https://www.shadertoy.com/view/4sBGDy
-//-----------------------------------------------------------------------
-float TorusIntersect( float rad0, float rad1, vec3 pos, Ray ray )
-//-----------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+float TorusIntersect( float rad0, float rad1, vec3 pos, vec3 rayOrigin, vec3 rayDirection )
+//-----------------------------------------------------------------------------------------
 {
-	vec3 rO = ray.origin - pos;
-	vec3 rD = ray.direction;
+	vec3 rO = rayOrigin - pos;
+	vec3 rD = rayDirection;
 	
 	float Ra2 = rad0*rad0;
 	float ra2 = rad1*rad1;
@@ -2268,55 +2197,55 @@ float TorusIntersect( float rad0, float rad1, vec3 pos, Ray ray )
 `;
 
 THREE.ShaderChunk[ 'pathtracing_quad_intersect' ] = `
-float TriangleIntersect( vec3 v0, vec3 v1, vec3 v2, Ray r, bool isDoubleSided )
+float TriangleIntersect( vec3 v0, vec3 v1, vec3 v2, vec3 rayOrigin, vec3 rayDirection, bool isDoubleSided )
 {
 	vec3 edge1 = v1 - v0;
 	vec3 edge2 = v2 - v0;
-	vec3 pvec = cross(r.direction, edge2);
+	vec3 pvec = cross(rayDirection, edge2);
 	float det = 1.0 / dot(edge1, pvec);
 	if ( !isDoubleSided && det < 0.0 ) 
 		return INFINITY;
-	vec3 tvec = r.origin - v0;
+	vec3 tvec = rayOrigin - v0;
 	float u = dot(tvec, pvec) * det;
 	vec3 qvec = cross(tvec, edge1);
-	float v = dot(r.direction, qvec) * det;
+	float v = dot(rayDirection, qvec) * det;
 	float t = dot(edge2, qvec) * det;
 	return (u < 0.0 || u > 1.0 || v < 0.0 || u + v > 1.0 || t <= 0.0) ? INFINITY : t;
 }
-//----------------------------------------------------------------------------------
-float QuadIntersect( vec3 v0, vec3 v1, vec3 v2, vec3 v3, Ray r, bool isDoubleSided )
-//----------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------
+float QuadIntersect( vec3 v0, vec3 v1, vec3 v2, vec3 v3, vec3 rayOrigin, vec3 rayDirection, bool isDoubleSided )
+//--------------------------------------------------------------------------------------------------------------
 {
-	return min(TriangleIntersect(v0, v1, v2, r, isDoubleSided), TriangleIntersect(v0, v2, v3, r, isDoubleSided));
+	return min(TriangleIntersect(v0, v1, v2, rayOrigin, rayDirection, isDoubleSided), 
+		   TriangleIntersect(v0, v2, v3, rayOrigin, rayDirection, isDoubleSided));
 }
 `;
 
 THREE.ShaderChunk[ 'pathtracing_box_intersect' ] = `
-//-------------------------------------------------------------------------------------------------------
-float BoxIntersect( vec3 minCorner, vec3 maxCorner, inout Ray r, out vec3 normal, out bool isRayExiting )
-//-------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------
+float BoxIntersect( vec3 minCorner, vec3 maxCorner, vec3 rayOrigin, vec3 rayDirection, out vec3 normal, out bool isRayExiting )
+//-----------------------------------------------------------------------------------------------------------------------------
 {
-	//r.direction = normalize(r.direction);
-	vec3 invDir = 1.0 / r.direction;
-	vec3 near = (minCorner - r.origin) * invDir;
-	vec3 far  = (maxCorner - r.origin) * invDir;
-	
+	vec3 invDir = 1.0 / rayDirection;
+	vec3 near = (minCorner - rayOrigin) * invDir;
+	vec3 far  = (maxCorner - rayOrigin) * invDir;
+
 	vec3 tmin = min(near, far);
 	vec3 tmax = max(near, far);
-	
+
 	float t0 = max( max(tmin.x, tmin.y), tmin.z);
 	float t1 = min( min(tmax.x, tmax.y), tmax.z);
-	
+
 	if (t0 > t1) return INFINITY;
 	if (t0 > 0.0) // if we are outside the box
 	{
-		normal = -sign(r.direction) * step(tmin.yzx, tmin) * step(tmin.zxy, tmin);
+		normal = -sign(rayDirection) * step(tmin.yzx, tmin) * step(tmin.zxy, tmin);
 		isRayExiting = false;
-		return t0;	
+		return t0;
 	}
 	if (t1 > 0.0) // if we are inside the box
 	{
-		normal = -sign(r.direction) * step(tmax, tmax.yzx) * step(tmax, tmax.zxy);
+		normal = -sign(rayDirection) * step(tmax, tmax.yzx) * step(tmax, tmax.zxy);
 		isRayExiting = true;
 		return t1;
 	}
@@ -2346,36 +2275,36 @@ float BoundingBoxIntersect( vec3 minCorner, vec3 maxCorner, vec3 rayOrigin, vec3
 
 
 THREE.ShaderChunk[ 'pathtracing_bvhTriangle_intersect' ] = `
-//-------------------------------------------------------------------------------------------
-float BVH_TriangleIntersect( vec3 v0, vec3 v1, vec3 v2, Ray r, out float u, out float v )
-//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+float BVH_TriangleIntersect( vec3 v0, vec3 v1, vec3 v2, vec3 rayOrigin, vec3 rayDirection, out float u, out float v )
+//-------------------------------------------------------------------------------------------------------------------
 {
 	vec3 edge1 = v1 - v0;
 	vec3 edge2 = v2 - v0;
-	vec3 pvec = cross(r.direction, edge2);
+	vec3 pvec = cross(rayDirection, edge2);
 	float det = 1.0 / dot(edge1, pvec);
-	vec3 tvec = r.origin - v0;
+	vec3 tvec = rayOrigin - v0;
 	u = dot(tvec, pvec) * det;
 	vec3 qvec = cross(tvec, edge1);
-	v = dot(r.direction, qvec) * det;
+	v = dot(rayDirection, qvec) * det;
 	float t = dot(edge2, qvec) * det;
 	return (det < 0.0 || u < 0.0 || u > 1.0 || v < 0.0 || u + v > 1.0 || t <= 0.0) ? INFINITY : t;
 }
 `;
 
 THREE.ShaderChunk[ 'pathtracing_bvhDoubleSidedTriangle_intersect' ] = `
-//-------------------------------------------------------------------------------------------
-float BVH_DoubleSidedTriangleIntersect( vec3 v0, vec3 v1, vec3 v2, Ray r, out float u, out float v )
-//-------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------
+float BVH_DoubleSidedTriangleIntersect( vec3 v0, vec3 v1, vec3 v2, vec3 rayOrigin, vec3 rayDirection, out float u, out float v )
+//------------------------------------------------------------------------------------------------------------------------------
 {
 	vec3 edge1 = v1 - v0;
 	vec3 edge2 = v2 - v0;
-	vec3 pvec = cross(r.direction, edge2);
+	vec3 pvec = cross(rayDirection, edge2);
 	float det = 1.0 / dot(edge1, pvec);
-	vec3 tvec = r.origin - v0;
+	vec3 tvec = rayOrigin - v0;
 	u = dot(tvec, pvec) * det;
 	vec3 qvec = cross(tvec, edge1);
-	v = dot(r.direction, qvec) * det; 
+	v = dot(rayDirection, qvec) * det; 
 	float t = dot(edge2, qvec) * det;
 	return (u < 0.0 || u > 1.0 || v < 0.0 || u + v > 1.0 || t <= 0.0) ? INFINITY : t;
 }
@@ -2402,14 +2331,14 @@ float SunIntensity(float zenithAngleCos)
 	zenithAngleCos = clamp( zenithAngleCos, -1.0, 1.0 );
 	return SUN_POWER * max( 0.0, 1.0 - pow( E, -( ( CUTOFF_ANGLE - acos( zenithAngleCos ) ) / STEEPNESS ) ) );
 }
-vec3 Get_Sky_Color(Ray r, vec3 sunDirection)
+vec3 Get_Sky_Color(vec3 rayDir)
 {
-	vec3 viewDirection = normalize(r.direction);
+	vec3 viewDirection = normalize(rayDir);
 	
 	/* most of the following code is borrowed from the three.js shader file: SkyShader.js */
     	// Cosine angles
-	float cosViewSunAngle = dot(viewDirection, normalize(sunDirection));
-    	float cosSunUpAngle = dot(UP_VECTOR, normalize(sunDirection)); // allowed to be negative: + is daytime, - is nighttime
+	float cosViewSunAngle = dot(viewDirection, uSunDirection);
+    	float cosSunUpAngle = dot(UP_VECTOR, uSunDirection); // allowed to be negative: + is daytime, - is nighttime
     	float cosUpViewAngle = dot(UP_VECTOR, viewDirection);
 	
         // Get sun intensity based on how high in the sky it is
@@ -2441,10 +2370,10 @@ vec3 Get_Sky_Color(Ray r, vec3 sunDirection)
 	vec2 uv = vec2( phi, theta ) / vec2( 2.0 * PI, PI ) + vec2( 0.5, 0.0 );
 	vec3 L0 = vec3( 0.1 ) * Fex;
 	// composition + solar disc
-	float sundisk = smoothstep( uSunAngularDiameterCos, uSunAngularDiameterCos + 0.00002, cosViewSunAngle );
+	float sundisk = smoothstep( SUN_ANGULAR_DIAMETER_COS, SUN_ANGULAR_DIAMETER_COS + 0.00002, cosViewSunAngle );
 	L0 += ( sunE * 19000.0 * Fex ) * sundisk;
 	vec3 texColor = ( Lin + L0 ) * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
-	float sunfade = 1.0 - clamp( 1.0 - exp( ( sunDirection.y / 450000.0 ) ), 0.0, 1.0 );
+	float sunfade = 1.0 - clamp( 1.0 - exp( ( uSunDirection.y / 450000.0 ) ), 0.0, 1.0 );
 	vec3 retColor = pow( texColor, vec3( 1.0 / ( 1.2 + ( 1.2 * sunfade ) ) ) );
 	return retColor;
 }
@@ -2456,7 +2385,6 @@ vec4 randVec4; // samples and holds the RGBA blueNoise texture value for this pi
 float randNumber; // the final randomly generated number (range: 0.0 to 1.0)
 float counter; // will get incremented by 1 on each call to rand()
 int channel; // the final selected color channel to use for rand() calc (range: 0 to 3, corresponds to R,G,B, or A)
-
 float rand()
 {
 	counter++; // increment counter by 1 on every call to rand()
@@ -2492,7 +2420,7 @@ vec3 randomDirectionInHemisphere(vec3 nl)
 	float y = r * sin(phi);
 	float z = sqrt(1.0 - x*x - y*y);
 	
-	vec3 U = normalize( cross(vec3(0.7071067811865475, 0.7071067811865475, 0), nl ) );
+	vec3 U = normalize( cross( abs(nl.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0), nl ) );
 	vec3 V = cross(nl, U);
 	return normalize(x * U + y * V + z * nl);
 }
@@ -2503,8 +2431,7 @@ vec3 randomCosWeightedDirectionInHemisphere(vec3 nl)
 	float x = r * cos(phi);
 	float y = r * sin(phi);
 	float z = sqrt(1.0 - x*x - y*y);
-	
-	vec3 U = normalize( cross(vec3(0.7071067811865475, 0.7071067811865475, 0), nl ) );
+	vec3 U = normalize( cross( abs(nl.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0), nl ) );
 	vec3 V = cross(nl, U);
 	return normalize(x * U + y * V + z * nl);
 }
@@ -2536,7 +2463,7 @@ vec3 randomDirectionInSpecularLobe(vec3 reflectionDir, float roughness)
 	float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
 	float phi = rng() * TWO_PI;
 	
-	vec3 U = normalize( cross(vec3(0.7071067811865475, 0.7071067811865475, 0), reflectionDir ) );
+	vec3 U = normalize( cross( abs(reflectionDir.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0), reflectionDir ) );
 	vec3 V = cross(reflectionDir, U);
 	return normalize(mix(reflectionDir, (U * cos(phi) * sinTheta + V * sin(phi) * sinTheta + reflectionDir * cosTheta), roughness));
 }
@@ -2575,7 +2502,7 @@ vec3 sampleSphereLight(vec3 x, vec3 nl, Sphere light, out float weight)
 	float phi = rng() * TWO_PI;
 	dirToLight = normalize(dirToLight);
 	
-	vec3 U = normalize( cross(vec3(0.7071067811865475, 0.7071067811865475, 0), dirToLight ) );
+	vec3 U = normalize( cross( abs(dirToLight.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0), dirToLight ) );
 	vec3 V = cross(dirToLight, U);
 	
 	vec3 sampleDir = normalize(U * cos(phi) * sin_alpha + V * sin(phi) * sin_alpha + dirToLight * cos_alpha);
@@ -2628,7 +2555,7 @@ float calcFresnelReflectance(vec3 rayDirection, vec3 n, float etai, float etat, 
 `;
 
 THREE.ShaderChunk[ 'pathtracing_main' ] = `
-// tentFilter from Peter Shirley's 'Realistic Ray Tracing (2nd Edition)' book, pg. 60		
+// tentFilter from Peter Shirley's 'Realistic Ray Tracing (2nd Edition)' book, pg. 60
 float tentFilter(float x)
 {
 	return (x < 0.5) ? sqrt(2.0 * x) - 1.0 : 1.0 - sqrt(2.0 - (2.0 * x));
@@ -2641,7 +2568,7 @@ void main( void )
 	vec3 camForward = vec3(-uCameraMatrix[2][0], -uCameraMatrix[2][1], -uCameraMatrix[2][2]);
 	// the following is not needed - three.js has a built-in uniform named cameraPosition
 	//vec3 camPos   = vec3( uCameraMatrix[3][0],  uCameraMatrix[3][1],  uCameraMatrix[3][2]);
-	
+
 	// calculate unique seed for rng() function
 	seed = uvec2(uFrameCounter, uFrameCounter + 1.0) * uvec2(gl_FragCoord);
 	// initialize rand() variables
@@ -2650,16 +2577,16 @@ void main( void )
 	randNumber = 0.0; // the final randomly-generated number (range: 0.0 to 1.0)
 	randVec4 = vec4(0); // samples and holds the RGBA blueNoise texture value for this pixel
 	randVec4 = texelFetch(tBlueNoiseTexture, ivec2(mod(gl_FragCoord.xy + floor(uRandomVec2 * 256.0), 256.0)), 0);
-	
+
 	// rand() produces higher FPS and almost immediate convergence, but may have very slight jagged diagonal edges on higher frequency color patterns, i.e. checkerboards.
 	//vec2 pixelOffset = vec2( tentFilter(rand()), tentFilter(rand()) );
 	// rng() has a little less FPS on mobile, and a little more noisy initially, but eventually converges on perfect anti-aliased edges - use this if 'beauty-render' is desired.
 	vec2 pixelOffset = vec2( tentFilter(rng()), tentFilter(rng()) );
-	
+
 	// we must map pixelPos into the range -1.0 to +1.0
 	vec2 pixelPos = ((gl_FragCoord.xy + pixelOffset) / uResolution) * 2.0 - 1.0;
 	vec3 rayDir = normalize( pixelPos.x * camRight * uULen + pixelPos.y * camUp * uVLen + camForward );
-	
+
 	// depth of field
 	vec3 focalPoint = uFocusDistance * rayDir;
 	float randomAngle = rng() * TWO_PI; // pick random point on aperture
@@ -2667,20 +2594,22 @@ void main( void )
 	vec3  randomAperturePos = ( cos(randomAngle) * camRight + sin(randomAngle) * camUp ) * sqrt(randomRadius);
 	// point on aperture to focal point
 	vec3 finalRayDir = normalize(focalPoint - randomAperturePos);
-	
-	Ray ray = Ray( cameraPosition + randomAperturePos , finalRayDir );
-	
+
+	rayOrigin = cameraPosition + randomAperturePos;
+	rayDirection = finalRayDir;
+
 	SetupScene();
-	
+
 	// Edge Detection - don't want to blur edges where either surface normals change abruptly (i.e. room wall corners), objects overlap each other (i.e. edge of a foreground sphere in front of another sphere right behind it),
 	// or an abrupt color variation on the same smooth surface, even if it has similar surface normals (i.e. checkerboard pattern). Want to keep all of these cases as sharp as possible - no blur filter will be applied.
-	vec3 objectNormal, objectColor;
+	vec3 objectNormal = vec3(0);
+	vec3 objectColor = vec3(0);
 	float objectID = -INFINITY;
 	float pixelSharpness = 0.0;
-	
-	// perform path tracing and get resulting pixel color
-	vec4 currentPixel = vec4( vec3(CalculateRadiance(ray, objectNormal, objectColor, objectID, pixelSharpness)), 0.0 );
 
+	// perform path tracing and get resulting pixel color
+	vec4 currentPixel = vec4( vec3(CalculateRadiance(objectNormal, objectColor, objectID, pixelSharpness)), 0.0 );
+	
 	// if difference between normals of neighboring pixels is less than the first edge0 threshold, the white edge line effect is considered off (0.0)
 	float edge0 = 0.2; // edge0 is the minimum difference required between normals of neighboring pixels to start becoming a white edge line
 	// any difference between normals of neighboring pixels that is between edge0 and edge1 smoothly ramps up the white edge line brightness (smoothstep 0.0-1.0)
@@ -2689,21 +2618,20 @@ void main( void )
 	float difference_Ny = fwidth(objectNormal.y);
 	float difference_Nz = fwidth(objectNormal.z);
 	float normalDifference = smoothstep(edge0, edge1, difference_Nx) + smoothstep(edge0, edge1, difference_Ny) + smoothstep(edge0, edge1, difference_Nz);
-
 	edge0 = 0.0;
 	edge1 = 0.5;
 	float difference_obj = abs(dFdx(objectID)) > 0.0 ? 1.0 : 0.0;
 	difference_obj += abs(dFdy(objectID)) > 0.0 ? 1.0 : 0.0;
 	float objectDifference = smoothstep(edge0, edge1, difference_obj);
-
 	float difference_col = length(dFdx(objectColor)) > 0.0 ? 1.0 : 0.0;
 	difference_col += length(dFdy(objectColor)) > 0.0 ? 1.0 : 0.0;
 	float colorDifference = smoothstep(edge0, edge1, difference_col);
 	// edge detector (normal and object differences) white-line debug visualization
 	//currentPixel.rgb += 1.0 * vec3(max(normalDifference, objectDifference));
-	
-	vec4 previousPixel = texelFetch(tPreviousTexture, ivec2(gl_FragCoord.xy), 0);
+	// edge detector (color difference) white-line debug visualization
+	//currentPixel.rgb += 1.0 * vec3(colorDifference);
 
+	vec4 previousPixel = texelFetch(tPreviousTexture, ivec2(gl_FragCoord.xy), 0);
 	if (uFrameCounter == 1.0) // camera just moved after being still
 	{
 		previousPixel = vec4(0); // clear rendering accumulation buffer
@@ -2712,20 +2640,29 @@ void main( void )
 	{
 		previousPixel.rgb *= 0.5; // motion-blur trail amount (old image)
 		currentPixel.rgb *= 0.5; // brightness of new image (noisy)
+
 		previousPixel.a = 0.0;
 	}
 
-	currentPixel.a = pixelSharpness;
+	currentPixel.a = 0.0;
 
-	currentPixel.a = colorDifference  >= 1.0 ? min(uSampleCounter * uColorEdgeSharpeningRate , 1.01) : currentPixel.a;
-	currentPixel.a = normalDifference >= 1.0 ? min(uSampleCounter * uNormalEdgeSharpeningRate, 1.01) : currentPixel.a;
-	currentPixel.a = objectDifference >= 1.0 ? min(uSampleCounter * uObjectEdgeSharpeningRate, 1.01) : currentPixel.a;
-	
+	if (colorDifference >= 1.0 || normalDifference >= 1.0 || objectDifference >= 1.0)
+		pixelSharpness = 1.01;
+
+
 	// Eventually, all edge-containing pixels' .a (alpha channel) values will converge to 1.01, which keeps them from getting blurred by the box-blur filter, thus retaining sharpness.
-	if (pixelSharpness == 1.0 || previousPixel.a == 1.01)
+	if (pixelSharpness == 1.01)
 		currentPixel.a = 1.01;
-	
-	
+	if (pixelSharpness == -1.0)
+		currentPixel.a = -1.0;
+
+	if (previousPixel.a == 1.01)
+		currentPixel.a = 1.01;
+
+	if (previousPixel.a == -1.0)
+		currentPixel.a = 0.0;
+
+
 	pc_fragColor = vec4(previousPixel.rgb + currentPixel.rgb, currentPixel.a);
 }
 `;
