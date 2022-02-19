@@ -1,6 +1,4 @@
 // scene/demo-specific variables go here
-let sceneIsDynamic = true;
-let camFlightSpeed = 60;
 let parentRotationObject = new THREE.Object3D();
 let sphereObject = new THREE.Object3D();
 let sphereObjectPosition = new THREE.Vector3();
@@ -382,6 +380,8 @@ function load_GLTF_Model(pathToThisModel, model_ID)
 function initSceneData() 
 {
 	// scene/demo-specific three.js objects setup goes here
+	sceneIsDynamic = true;
+	cameraFlightSpeed = 60;
 
 	document.addEventListener('mousedown', onDocumentMouseDown);
 
