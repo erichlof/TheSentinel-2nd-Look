@@ -2,6 +2,7 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 
+uniform bool uSceneIsDynamic;
 uniform bool uUseToneMapping;
 uniform float uOneOverSampleCounter;
 uniform sampler2D tPathTracedImageTexture;
