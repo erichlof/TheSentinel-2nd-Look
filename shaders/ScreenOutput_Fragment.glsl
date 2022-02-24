@@ -85,7 +85,7 @@ void main()
         filteredPixelColor /= float(count);
 
         if (centerPixel.a == 1.01)
-                filteredPixelColor = centerPixel.rgb;
+                filteredPixelColor = mix(filteredPixelColor, centerPixel.rgb, 0.5);
 
         filteredPixelColor *= uOneOverSampleCounter;
 
