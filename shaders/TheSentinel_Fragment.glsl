@@ -47,9 +47,9 @@ int hitType;
 
 #include <pathtracing_bvhTriangle_intersect>
 
-
-vec2 stackLevels[24];
-vec2 objStackLevels[24];
+		  // when there are 2 stackLevels, for example stackLevels[23] and objStackLevels[23],...
+vec2 stackLevels[23]; // [23] is max size for my Samsung Galaxy S21, [24] crashes on compile
+vec2 objStackLevels[23]; // [23] is max size for my Samsung Galaxy S21, [24] crashes on compile
 
 
 //vec4 boxNodeData0 corresponds to .x = idTriangle,  .y = aabbMin.x, .z = aabbMin.y, .w = aabbMin.z
@@ -840,6 +840,14 @@ void main( void )
                 previousPixel.rgb *= 0.8; // motion-blur trail amount (old image)
                 currentPixel.rgb *= 0.2; // brightness of new image (noisy)
         }
+
+	// if current raytraced pixel didn't return any color value, just use the previous frame's pixel color
+	if (currentPixel.rgb == vec3(0.0))
+	{
+		currentPixel.rgb = previousPixel.rgb;
+		previousPixel.rgb *= 0.5;
+		currentPixel.rgb *= 0.5;
+	}
 	
         currentPixel.a = 0.0;
 	if (colorDifference >= 1.0 || normalDifference >= 1.0)// || objectDifference >= 1.0)
