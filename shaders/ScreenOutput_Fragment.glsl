@@ -85,8 +85,13 @@ void main()
 
         filteredPixelColor /= float(count);
 
-        if (centerPixel.a == 1.01)
-                filteredPixelColor = mix(filteredPixelColor, centerPixel.rgb, 0.5);
+        // gives sharper edges between surface areas of differing colors,
+	// and to edges/boundries of area light sources (spheres, quads, etc.)
+	if (centerPixel.a == 1.01) 
+	{
+		filteredPixelColor = mix(centerPixel.rgb, filteredPixelColor, 0.75);
+	}
+
 
         filteredPixelColor *= uOneOverSampleCounter;
 
