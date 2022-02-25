@@ -522,11 +522,11 @@ function initSceneData()
 	models_triangle_array = new Float32Array(256 * 256 * 4 * 7); // * number of different models
 	models_aabb_array = new Float32Array(256 * 256 * 4 * 7); // * number of different models
 
-	models_triangleDataTexture2DArray = new THREE.DataTexture2DArray(models_triangle_array, 256, 256, 7);
+	models_triangleDataTexture2DArray = new THREE.DataArrayTexture(models_triangle_array, 256, 256, 7);
 	models_triangleDataTexture2DArray.format = THREE.RGBAFormat;
 	models_triangleDataTexture2DArray.type = THREE.FloatType;
 
-	models_aabbDataTexture2DArray = new THREE.DataTexture2DArray(models_aabb_array, 256, 256, 7);
+	models_aabbDataTexture2DArray = new THREE.DataArrayTexture(models_aabb_array, 256, 256, 7);
 	models_aabbDataTexture2DArray.format = THREE.RGBAFormat;
 	models_aabbDataTexture2DArray.type = THREE.FloatType;
 
