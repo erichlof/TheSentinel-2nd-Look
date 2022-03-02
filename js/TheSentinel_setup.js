@@ -376,9 +376,11 @@ function load_GLTF_Model(pathToThisModel, model_ID)
 
 
 
-// called automatically from within initTHREEjs() function
+// called automatically from within initTHREEjs() function (located in InitCommon.js file)
 function initSceneData() 
 {
+	demoFragmentShaderFileName = 'TheSentinel_Fragment.glsl';
+
 	// scene/demo-specific three.js objects setup goes here
 	sceneIsDynamic = true;
 	cameraFlightSpeed = 60;
@@ -1427,18 +1429,6 @@ function initSceneData()
 	models_aabbDataTexture2DArray.needsUpdate = true;
 
 
-
-	// generate random landscape
-	buildNewLevel(true);
-
-
-} // end function initSceneData()
-
-
-
-// called automatically from within initTHREEjs() function
-function initPathTracingShaders() 
-{
 	// scene/demo-specific uniforms go here	
 	pathTracingUniforms.tModels_triangleDataTexture2DArray = { value: models_triangleDataTexture2DArray };
 	pathTracingUniforms.tModels_aabbDataTexture2DArray = { value: models_aabbDataTexture2DArray };
@@ -1455,52 +1445,13 @@ function initPathTracingShaders()
 	pathTracingUniforms.uDoingDissolveEffect = { value: doingDissolveEffect };
 	pathTracingUniforms.uDissolveEffectStrength = { value: dissolveEffectStrength };
 	pathTracingUniforms.uResolvingObjectIndex = { value: -10 };
-	
-
-	pathTracingDefines = {
-		//NUMBER_OF_TRIANGLES: total_number_of_triangles
-	};
-
-	// load vertex and fragment shader files that are used in the pathTracing material, mesh and scene
-	fileLoader.load('shaders/common_PathTracing_Vertex.glsl', function (shaderText)
-	{
-		pathTracingVertexShader = shaderText;
-
-		createPathTracingMaterial();
-	});
-
-} // end function initPathTracingShaders()
 
 
+	// generate random landscape
+	buildNewLevel(true);
 
-// called automatically from within initPathTracingShaders() function above
-function createPathTracingMaterial() 
-{
-	fileLoader.load('shaders/TheSentinel_Fragment.glsl', function (shaderText)
-	{
+} // end function initSceneData()
 
-		pathTracingFragmentShader = shaderText;
-
-		pathTracingMaterial = new THREE.ShaderMaterial({
-			uniforms: pathTracingUniforms,
-			defines: pathTracingDefines,
-			vertexShader: pathTracingVertexShader,
-			fragmentShader: pathTracingFragmentShader,
-			depthTest: false,
-			depthWrite: false
-		});
-
-		pathTracingMesh = new THREE.Mesh(pathTracingGeometry, pathTracingMaterial);
-		pathTracingScene.add(pathTracingMesh);
-
-		// the following keeps the large scene ShaderMaterial quad right in front 
-		//   of the camera at all times. This is necessary because without it, the scene 
-		//   quad will fall out of view and get clipped when the camera rotates past 180 degrees.
-		worldCamera.add(pathTracingMesh);
-
-	});
-
-} // end function createPathTracingMaterial()
 
 
 
@@ -2472,7 +2423,7 @@ function updateTopLevel_BVH()
 
 
 
-// called automatically from within the animate() function
+// called automatically from within the animate() function (located in InitCommon.js file)
 function updateVariablesAndUniforms()
 {
 	if ( !inGame )
