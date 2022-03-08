@@ -234,9 +234,9 @@ void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, 
 		//vd7 = texelFetch(tModels_triangleDataTexture2DArray, ivec3(uv7, depth_id), 0);	      
 
 		// face normal for flat-shaded polygon look
-		hitNormal = normalize( cross(vec3(vd0.w, vd1.xy) - vec3(vd0.xyz), vec3(vd1.zw, vd2.x) - vec3(vd0.xyz)) );
+		hitNormal = ( cross(vec3(vd0.w, vd1.xy) - vec3(vd0.xyz), vec3(vd1.zw, vd2.x) - vec3(vd0.xyz)) );
 		// transfom normal back into world space
-		hitNormal = normalize(transpose(invMatrix) * hitNormal);
+		hitNormal = (transpose(invMatrix) * hitNormal);
 		// else use vertex normals
 		//triangleW = 1.0 - triangleU - triangleV;
 		//hitNormal = normalize(triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
@@ -295,7 +295,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 	if (d < hitT)
 	{
 		hitT = d;
-		hitNormal = normalize((rayOrigin + rayDirection * hitT) - uViewRayTargetPosition);
+		hitNormal = (rayOrigin + rayDirection * hitT) - uViewRayTargetPosition;
 		hitEmission = vec3(0);
 		hitColor = vec3(1);//vec3(1.0, 0.765557, 0.336057);
 		hitType = SPEC;
@@ -422,7 +422,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 		//hitNormal = normalize( cross(vec3(vd0.w, vd1.xy) - vec3(vd0.xyz), vec3(vd1.zw, vd2.x) - vec3(vd0.xyz)) );
 		// else use vertex normals
 		triangleW = 1.0 - triangleU - triangleV;
-		hitNormal = normalize(triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
+		hitNormal = (triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
 		hitColor = (triangleID == uSelectedTileIndex || triangleID == uSelectedTileIndex + 8.0) ? vec3(0,2,1) : vd2.yzw;
 		hitType = DIFF;
 		intersectedObjectID = float(objectCount);
@@ -471,7 +471,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 				intersectedObjectID = float(objectCount);
 			}
 
-			hitNormal = normalize(hitNormal);
+			///hitNormal = normalize(hitNormal);
 
 		} // end if (hitColor == vec3(1.0))
 
@@ -615,8 +615,8 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 
 		// useful data 
 		n = normalize(hitNormal);
-                nl = dot(n, rayDirection) < 0.0 ? normalize(n) : normalize(-n);
-		x = rayOrigin + rayDirection * hitT;
+                nl = dot(n, rayDirection) < 0.0 ? n : -n;
+		x = rayOrigin + rayDirection * t;
 
 		if (bounces == 0)
 		{
@@ -766,6 +766,7 @@ void main( void )
 	randVec4 = texelFetch(tBlueNoiseTexture, ivec2(mod(gl_FragCoord.xy + floor(uRandomVec2 * 256.0), 256.0)), 0);
 	
 	vec2 pixelOffset = vec2( tentFilter(rand()), tentFilter(rand()) ) * 0.5;
+	//vec2 pixelOffset = vec2( tentFilter(rng()), tentFilter(rng()) ) * 0.5;
 
 	// we must map pixelPos into the range -1.0 to +1.0
 	vec2 pixelPos = ((gl_FragCoord.xy + pixelOffset) / uResolution) * 2.0 - 1.0;
