@@ -616,7 +616,7 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 		// useful data 
 		n = normalize(hitNormal);
                 nl = dot(n, rayDirection) < 0.0 ? n : -n;
-		x = rayOrigin + rayDirection * t;
+		x = rayOrigin + rayDirection * hitT;
 
 		if (bounces == 0)
 		{
