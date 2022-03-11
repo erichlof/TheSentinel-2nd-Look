@@ -677,7 +677,7 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 		if (hitType == COAT)  // Diffuse object underneath with ClearCoat on top
 		{
 			if (bounces == 0)
-				pixelSharpness = 0.0;
+			 	pixelSharpness = -1.0;
 
 			nc = 1.0; // IOR of Air
 			nt = 1.6; // IOR of Clear Coat
@@ -766,7 +766,6 @@ void main( void )
 	randVec4 = texelFetch(tBlueNoiseTexture, ivec2(mod(gl_FragCoord.xy + floor(uRandomVec2 * 256.0), 256.0)), 0);
 	
 	vec2 pixelOffset = vec2( tentFilter(rand()), tentFilter(rand()) ) * 0.5;
-	//vec2 pixelOffset = vec2( tentFilter(rng()), tentFilter(rng()) ) * 0.5;
 
 	// we must map pixelPos into the range -1.0 to +1.0
 	vec2 pixelPos = ((gl_FragCoord.xy + pixelOffset) / uResolution) * 2.0 - 1.0;
@@ -842,32 +841,25 @@ void main( void )
         }
 
 	// if current raytraced pixel didn't return any color value, just use the previous frame's pixel color
-	if (currentPixel.rgb == vec3(0.0))
+	/* if (currentPixel.rgb == vec3(0.0))
 	{
 		currentPixel.rgb = previousPixel.rgb;
 		previousPixel.rgb *= 0.5;
 		currentPixel.rgb *= 0.5;
-	}
+	} */
 	
-        currentPixel.a = 0.0;
 	if (colorDifference >= 1.0 || normalDifference >= 1.0)// || objectDifference >= 1.0)
 		pixelSharpness = 1.01;
 
-	
-	// Eventually, all edge-containing pixels' .a (alpha channel) values will converge to 1.01, which keeps them from getting blurred by the box-blur filter, thus retaining sharpness.
+	currentPixel.a = pixelSharpness;
+
+	// makes sharp edges more stable
 	if (previousPixel.a == 1.01)
 		currentPixel.a = 1.01;
-	// for dynamic scenes
+
+	// for dynamic scenes (to clear out old, dark, sharp pixel trails left behind from moving objects)
 	if (previousPixel.a == 1.01 && rng() < 0.05)
 		currentPixel.a = 1.0;
-	if (previousPixel.a == -1.0)
-		currentPixel.a = 0.0;
-
-	if (pixelSharpness == 1.01)
-		currentPixel.a = 1.01;
-	if (pixelSharpness == -1.0)
-		currentPixel.a = -1.0;
-	
 	
 	pc_fragColor = vec4(previousPixel.rgb + currentPixel.rgb, currentPixel.a);	
 }
