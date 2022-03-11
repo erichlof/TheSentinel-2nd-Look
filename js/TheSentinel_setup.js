@@ -383,6 +383,7 @@ function initSceneData()
 
 	// scene/demo-specific three.js objects setup goes here
 	sceneIsDynamic = true;
+	
 	cameraFlightSpeed = 60;
 
 	document.addEventListener('mousedown', onDocumentMouseDown);
