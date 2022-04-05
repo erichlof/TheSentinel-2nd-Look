@@ -32,7 +32,7 @@ vec3 rayOrigin, rayDirection;
 vec3 hitNormal, hitEmission, hitColor;
 float hitT;
 int hitTextureID;
-int hitType;
+int hitType = -100;
 
 
 #include <pathtracing_random_functions>
