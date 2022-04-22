@@ -57,7 +57,6 @@ let levelPlacementUnitsAvailable = 0;
 let STARTING_PLAYER_UNITS_OF_ENERGY = 10; // 10
 let playerUnitsOfEnergy = 0;
 let materialNumber = 0;
-let buildnodesLength = 0;
 
 
 let landscape_total_number_of_triangles = 0;
@@ -383,6 +382,7 @@ function initSceneData()
 
 	// scene/demo-specific three.js objects setup goes here
 	sceneIsDynamic = true;
+	allowOrthographicCamera = false;
 	
 	cameraFlightSpeed = 60;
 
@@ -727,7 +727,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodesLength; i++)
+	for (let i = 0; i < buildnodes.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -841,7 +841,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodesLength; i++)
+	for (let i = 0; i < buildnodes.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -955,7 +955,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodesLength; i++)
+	for (let i = 0; i < buildnodes.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1070,7 +1070,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodesLength; i++)
+	for (let i = 0; i < buildnodes.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1185,7 +1185,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodesLength; i++)
+	for (let i = 0; i < buildnodes.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1300,7 +1300,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodesLength; i++)
+	for (let i = 0; i < buildnodes.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1415,7 +1415,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodesLength; i++)
+	for (let i = 0; i < buildnodes.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
