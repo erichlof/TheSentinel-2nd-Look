@@ -5,12 +5,18 @@ precision highp sampler2DArray;
 
 #include <pathtracing_uniforms_and_defines>
 
+uniform InvMatrices_UniformsGroup {
+	mat4 uObj3D_InvMatrices[64];
+};
+
+uniform TopLevelBVH_UniformsGroup {
+	vec4 uTopLevelBVH_aabbData[256];
+};
+
 uniform sampler2DArray tModels_triangleDataTexture2DArray;
 uniform sampler2DArray tModels_aabbDataTexture2DArray;
 uniform sampler2D tLandscape_TriangleTexture;
 uniform sampler2D tLandscape_AABBTexture;
-uniform mat4 uObjInvMatrices[64];//64
-uniform vec4 uTopLevelAABBTree[256];//256
 uniform vec3 uSunDirection;
 uniform vec3 uViewRayTargetPosition;
 uniform float uViewRaySphereRadius;
@@ -76,8 +82,8 @@ void GetBoxNodeUniform(in float i, inout vec4 boxNodeData0, inout vec4 boxNodeDa
 	// (ix2 + 0.0) corresponds to .x: idObject,     .y: aabbMin.x, .z: aabbMin.y, .w: aabbMin.z 
 	// (ix2 + 1.0) corresponds to .x: idRightChild, .y: aabbMax.x, .z: aabbMax.y, .w: aabbMax.z 
 	
-	boxNodeData0 = uTopLevelAABBTree[int(ix2 + 0.0)]; 
-	boxNodeData1 = uTopLevelAABBTree[int(ix2 + 1.0)];
+	boxNodeData0 = uTopLevelBVH_aabbData[int(ix2 + 0.0)]; 
+	boxNodeData1 = uTopLevelBVH_aabbData[int(ix2 + 1.0)];
 }
 
 void GetBoxNode2DArray(in float i, in float depth, inout vec4 boxNodeData0, inout vec4 boxNodeData1)
@@ -552,7 +558,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 		if (currentBoxNodeData0.x != 0.0 && objectIsSelected && rng() < uDissolveEffectStrength)
 			continue;
 
-		invMatrix = uObjInvMatrices[int(currentBoxNodeData0.x)];
+		invMatrix = uObj3D_InvMatrices[int(currentBoxNodeData0.x)];
 		model_id = invMatrix[3][3];
 		if (model_id == 2.0 && bounces == 0 && currentStackData.y < 0.1) 
 			continue; // don't want our view blocked by the inside of our robot's head and shoulders
