@@ -1,8 +1,8 @@
 # TheSentinel-2nd-Look (W.I.P.)
-A fully path traced remake of Geoff Crammond's iconic 1986 game, The Sentinel - runs in your Desktop browser! <br>
+A fully path traced remake of Geoff Crammond's iconic 1986 game, The Sentinel - runs in your Desktop/Mobile browser! <br>
 Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2nd_Look.html 
 <br>
-<h4>Desktop Controls (update 7/30/22: Mobile GUI/Controls coming soon!)</h4>
+<h4>Desktop Controls (update 7/30/22: Mobile GUI/Controls coming soon, now that Mobile rendering is working!)</h4>
 
 * Click anywhere to capture mouse
 * move Mouse to free-look
