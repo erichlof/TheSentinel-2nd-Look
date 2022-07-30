@@ -2,7 +2,7 @@
 A fully path traced remake of Geoff Crammond's iconic 1986 game, The Sentinel - runs in your Desktop browser! <br>
 Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2nd_Look.html 
 <br>
-<h4>Desktop Controls</h4>
+<h4>Desktop Controls (update 7/30/22: Mobile GUI/Controls coming soon!)</h4>
 
 * Click anywhere to capture mouse
 * move Mouse to free-look
@@ -27,7 +27,7 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 * Upon seeing an object with more energy than a natural tree, make Head Sentinel and her lower Sentries dissolve and break down the object.
 * Add simple GUI showing player assets as well as player visibility to The Sentinel and lower Sentries.
 * Add the classic original sound effects and short recurring melodic theme.
-* Unfortunately because it uses many BVHs, this game currently runs on Desktop only - Mobile is, as always, a W.I.P.
+* Now that Mobile rendering is working, add mobile GUI/buttons and increase mobile performance (framerate)
 
 <h2>ABOUT</h2>
 
