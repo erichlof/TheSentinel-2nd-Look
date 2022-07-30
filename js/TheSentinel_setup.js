@@ -94,8 +94,9 @@ let gameObjectIndex = -1;
 let numOfSentries = 0;
 let game_Objects = [];
 let gameObject_boundingBoxes = [];
-let objInvMatrices = [];
-let topLevelAABBTree = [];
+let InvMatrices_UniformsGroup, TopLevelBVH_UniformsGroup;
+let uObj3D_InvMatrices = [];
+let uTopLevelBVH_aabbData = [];
 let randomThreshold = 0;
 let okToPlaceRobot = false;
 
@@ -382,6 +383,7 @@ function initSceneData()
 
 	// scene/demo-specific three.js objects setup goes here
 	sceneIsDynamic = true;
+	
 	allowOrthographicCamera = false;
 	
 	cameraFlightSpeed = 60;
@@ -420,8 +422,12 @@ function initSceneData()
 	sphereObject.position.set(0, 0, 0);
 	sphereObject.position.add(sunDirection);
 
-
+	
+	
 	// GAME OBJECTS (THREE.Object3Ds), their Bounding Boxes (THREE.Box3s) and their Inverse Matrices (THREE.Matrix4s)
+	InvMatrices_UniformsGroup = new THREE.UniformsGroup();
+	InvMatrices_UniformsGroup.setName('InvMatrices_UniformsGroup');
+	InvMatrices_UniformsGroup.setUsage(THREE.DynamicDrawUsage);
 	for (let i = 0; i < MAX_UNITS_OF_ENERGY; i++) // 64 = max object inverse matrices
 	{
 		game_Objects[i] = new THREE.Object3D(); // contains useful info like position, rotation, etc.
@@ -434,13 +440,17 @@ function initSceneData()
 		gameObject_boundingBoxes[i] = new THREE.Box3();
 
 		// store these game objects' matrices (transforms), specifically their matrix 'inverses' for later efficiently ray tracing
-		objInvMatrices[i] = new THREE.Matrix4(); 
+		uObj3D_InvMatrices[i] = new THREE.Matrix4();
+		InvMatrices_UniformsGroup.add(new THREE.Uniform(uObj3D_InvMatrices[i]));
 	}
 	// GAME OBJECTS AABB Tree (array of THREE.Vector4 uniforms to be sent to the GPU)
-			//  256
+	TopLevelBVH_UniformsGroup = new THREE.UniformsGroup();
+	TopLevelBVH_UniformsGroup.setName('TopLevelBVH_UniformsGroup');
+	TopLevelBVH_UniformsGroup.setUsage(THREE.DynamicDrawUsage);
 	for (let i = 0; i < 256; i++) // enough to hold ~ 64 nodes + 64 leaves * 2 (2 Vector4's for each node)
 	{
-		topLevelAABBTree[i] = new THREE.Vector4();
+		uTopLevelBVH_aabbData[i] = new THREE.Vector4();
+		TopLevelBVH_UniformsGroup.add(new THREE.Uniform(uTopLevelBVH_aabbData[i]));
 	}
 
 
@@ -1435,8 +1445,6 @@ function initSceneData()
 	pathTracingUniforms.tModels_aabbDataTexture2DArray = { value: models_aabbDataTexture2DArray };
 	pathTracingUniforms.tLandscape_TriangleTexture = { value: landscape_triangleDataTexture };
 	pathTracingUniforms.tLandscape_AABBTexture = { value: landscape_aabbDataTexture };
-	pathTracingUniforms.uTopLevelAABBTree = { value: topLevelAABBTree };
-	pathTracingUniforms.uObjInvMatrices = { value: objInvMatrices };
 	pathTracingUniforms.uSunDirection = { value: new THREE.Vector3() };//new THREE.Vector3 because another variable value is used
 	pathTracingUniforms.uViewRayTargetPosition = { value: viewRayTargetPosition };
 	pathTracingUniforms.uViewRaySphereRadius = { value: viewRaySphereRadius };
@@ -1446,6 +1454,8 @@ function initSceneData()
 	pathTracingUniforms.uDoingDissolveEffect = { value: doingDissolveEffect };
 	pathTracingUniforms.uDissolveEffectStrength = { value: dissolveEffectStrength };
 	pathTracingUniforms.uResolvingObjectIndex = { value: -10 };
+
+	pathTracingUniformsGroups = [InvMatrices_UniformsGroup, TopLevelBVH_UniformsGroup];
 
 
 	// generate random landscape
@@ -2240,8 +2250,8 @@ function populateLevel()
 		else game_Objects[i].rotation.set(0,0,0);
 		
 		game_Objects[i].updateMatrixWorld(true);
-		objInvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
-		objInvMatrices[i].elements[15] = current_model_id;
+		uObj3D_InvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
+		uObj3D_InvMatrices[i].elements[15] = current_model_id;
 		
 		
 		bounding_box_min.add(game_Objects[i].position);
@@ -2269,7 +2279,7 @@ function populateLevel()
 	for (let i = 0; i < 256; i++)
 	{
 		iX4 = i * 4;
-		topLevelAABBTree[i].set(topLevel_aabb_array[iX4 + 0], topLevel_aabb_array[iX4 + 1],
+		uTopLevelBVH_aabbData[i].set(topLevel_aabb_array[iX4 + 0], topLevel_aabb_array[iX4 + 1],
 			topLevel_aabb_array[iX4 + 2], topLevel_aabb_array[iX4 + 3]);
 	}
 
@@ -2417,7 +2427,7 @@ function updateTopLevel_BVH()
 	for (let i = 0; i < 256; i++)
 	{
 		iX4 = i * 4;
-		topLevelAABBTree[i].set(topLevel_aabb_array[iX4 + 0], topLevel_aabb_array[iX4 + 1],
+		uTopLevelBVH_aabbData[i].set(topLevel_aabb_array[iX4 + 0], topLevel_aabb_array[iX4 + 1],
 			topLevel_aabb_array[iX4 + 2], topLevel_aabb_array[iX4 + 3]);
 	}
 } // end function updateTopLevel_BVH()
