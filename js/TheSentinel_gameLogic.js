@@ -10,11 +10,11 @@ function doGameLogic()
 			game_Objects[i].rotation.y %= (Math.PI * 2);
 			game_Objects[i].updateMatrixWorld(true); // required for writing to uniforms below
 
-			objInvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
+			uObj3D_InvMatrices[i].copy(game_Objects[i].matrixWorld).invert();
 			if (i == 1)
-				objInvMatrices[i].elements[15] = SENTINEL_MODEL_ID;
+				uObj3D_InvMatrices[i].elements[15] = SENTINEL_MODEL_ID;
 			else
-				objInvMatrices[i].elements[15] = SENTRY_MODEL_ID;
+				uObj3D_InvMatrices[i].elements[15] = SENTRY_MODEL_ID;
 		}
 	}
 
@@ -168,8 +168,8 @@ function doGameLogic()
 
 			game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
 			game_Objects[gameObjectIndex].updateMatrixWorld(true);
-			objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
-			objInvMatrices[gameObjectIndex].elements[15] = TREE_MODEL_ID;
+			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+			uObj3D_InvMatrices[gameObjectIndex].elements[15] = TREE_MODEL_ID;
 
 			playerUnitsOfEnergy -= 1;
 			canDoResolveEffect = true;
@@ -188,8 +188,8 @@ function doGameLogic()
 
 			game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
 			game_Objects[gameObjectIndex].updateMatrixWorld(true);
-			objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
-			objInvMatrices[gameObjectIndex].elements[15] = TREE_MODEL_ID;
+			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+			uObj3D_InvMatrices[gameObjectIndex].elements[15] = TREE_MODEL_ID;
 
 			playerUnitsOfEnergy -= 1;
 			canDoResolveEffect = true;
@@ -237,8 +237,8 @@ function doGameLogic()
 
 			game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
 			game_Objects[gameObjectIndex].updateMatrixWorld(true);
-			objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
-			objInvMatrices[gameObjectIndex].elements[15] = BOULDER_MODEL_ID;
+			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+			uObj3D_InvMatrices[gameObjectIndex].elements[15] = BOULDER_MODEL_ID;
 
 			playerUnitsOfEnergy -= 2;
 			canDoResolveEffect = true;
@@ -258,8 +258,8 @@ function doGameLogic()
 
 			game_Objects[gameObjectIndex].rotation.y = Math.random() * Math.PI * 2;
 			game_Objects[gameObjectIndex].updateMatrixWorld(true);
-			objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
-			objInvMatrices[gameObjectIndex].elements[15] = BOULDER_MODEL_ID;
+			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+			uObj3D_InvMatrices[gameObjectIndex].elements[15] = BOULDER_MODEL_ID;
 
 			playerUnitsOfEnergy -= 2;
 			canDoResolveEffect = true;
@@ -309,8 +309,8 @@ function doGameLogic()
 
 			game_Objects[gameObjectIndex].updateMatrixWorld(true); // required for writing to uniforms below
 
-			objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
-			objInvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
+			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+			uObj3D_InvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
 
 			playerUnitsOfEnergy -= 3;
 			canDoResolveEffect = true;
@@ -330,8 +330,8 @@ function doGameLogic()
 
 			game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
 			game_Objects[gameObjectIndex].updateMatrixWorld(true);
-			objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
-			objInvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
+			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+			uObj3D_InvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
 
 			playerUnitsOfEnergy -= 3;
 			canDoResolveEffect = true;
@@ -354,8 +354,8 @@ function doGameLogic()
 
 			game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
 			game_Objects[gameObjectIndex].updateMatrixWorld(true);
-			objInvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
-			objInvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
+			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
+			uObj3D_InvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
 
 			playerUnitsOfEnergy -= 3;
 			canDoResolveEffect = true;
@@ -624,8 +624,8 @@ function doGameLogic()
 	game_Objects[playerRobotIndex].rotation.y += Math.PI;
 	game_Objects[playerRobotIndex].updateMatrixWorld(true); // required for writing to uniforms below
 
-	objInvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
-	objInvMatrices[playerRobotIndex].elements[15] = ROBOT_MODEL_ID;
+	uObj3D_InvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
+	uObj3D_InvMatrices[playerRobotIndex].elements[15] = ROBOT_MODEL_ID;
 
 
 
@@ -899,7 +899,7 @@ function doDissolveEffect()
 			game_Objects[i].rotation.copy(game_Objects[i + 1].rotation);
 			game_Objects[i].updateMatrixWorld(true);
 
-			objInvMatrices[i].copy(objInvMatrices[i + 1]);
+			uObj3D_InvMatrices[i].copy(uObj3D_InvMatrices[i + 1]);
 		}
 
 		gameObjectIndex -= 1; // now that the item has been removed, decrease gameObjectIndex by 1
@@ -1139,8 +1139,8 @@ function doWinAnimation()
 	game_Objects[playerRobotIndex].position.y += animationProgress;
 	game_Objects[playerRobotIndex].updateMatrixWorld(true); // required for writing to uniforms below
 
-	objInvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
-	objInvMatrices[playerRobotIndex].elements[15] = ROBOT_MODEL_ID;
+	uObj3D_InvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
+	uObj3D_InvMatrices[playerRobotIndex].elements[15] = ROBOT_MODEL_ID;
 
 	pathTracingUniforms.uApertureSize.value = 0.2;
 	viewRayTargetPosition.copy(game_Objects[playerRobotIndex].position);
