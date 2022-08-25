@@ -2439,7 +2439,7 @@ function updateVariablesAndUniforms()
 {
 	if ( !inGame )
 	{
-		if (keyPressed('enter') && canPressEnter)
+		if (keyPressed('Enter') && canPressEnter)
 		{
 			canPressEnter = false;
 			useGenericInput = false;
@@ -2464,13 +2464,13 @@ function updateVariablesAndUniforms()
 				turnAngle = (Math.PI * 2) - turnAngle;
 			cameraControlsYawObject.rotation.y = turnAngle; */
 		}
-		if (!keyPressed('enter') )
+		if (!keyPressed('Enter') )
 		{
 			canPressEnter = true;
 		}
 	
 
-		if (keyPressed('space') && canPressSpace)
+		if (keyPressed('Space') && canPressSpace)
 		{
 			canPressSpace = false;
 			useGenericInput = true;
@@ -2484,7 +2484,7 @@ function updateVariablesAndUniforms()
 
 			buildNewLevel(true);
 		}
-		if (!keyPressed('space') )
+		if (!keyPressed('Space') )
 		{
 			canPressSpace = true;
 		}
@@ -2538,11 +2538,11 @@ function updateVariablesAndUniforms()
 			decreaseFOV = false;
 		}
 
-		if (keyPressed('right') && !keyPressed('left'))
+		if (keyPressed('ArrowRight') && !keyPressed('ArrowLeft'))
 		{
 			increaseAperture = true;
 		}
-		if (keyPressed('left') && !keyPressed('right'))
+		if (keyPressed('ArrowLeft') && !keyPressed('ArrowRight'))
 		{
 			decreaseAperture = true;
 		}
