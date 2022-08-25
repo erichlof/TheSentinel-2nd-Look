@@ -144,7 +144,7 @@ function doGameLogic()
 
 	// otherwise if no animations are playing, get player Input during game mode
 
-	if (keyPressed('t') && canPressT && !keyPressed('b') && !keyPressed('r') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
+	if (keyPressed('KeyT') && canPressT && !keyPressed('KeyB') && !keyPressed('KeyR') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressT = false;
 
@@ -207,13 +207,13 @@ function doGameLogic()
 		}
 		canDoResolveEffect = false;
 		
-	} // end if (keyPressed('t') && canPressT && !keyPressed('b') && !keyPressed('r'))
-	if ( !keyPressed('t') )
+	} // end if (keyPressed('KeyT') && canPressT && !keyPressed('KeyB') && !keyPressed('KeyR'))
+	if ( !keyPressed('KeyT') )
 	{
 		canPressT = true;
 	}
 
-	if (keyPressed('b') && canPressB && !keyPressed('t') && !keyPressed('r') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
+	if (keyPressed('KeyB') && canPressB && !keyPressed('KeyT') && !keyPressed('KeyR') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressB = false;
 
@@ -277,13 +277,13 @@ function doGameLogic()
 		}
 		canDoResolveEffect = false;
 		
-	} // end if (keyPressed('b') && canPressB && !keyPressed('t') && !keyPressed('r'))
-	if ( !keyPressed('b') )
+	} // end if (keyPressed('KeyB') && canPressB && !keyPressed('KeyT') && !keyPressed('KeyR'))
+	if ( !keyPressed('KeyB') )
 	{
 		canPressB = true;
 	}
 
-	if (keyPressed('r') && canPressR && !keyPressed('b') && !keyPressed('t') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
+	if (keyPressed('KeyR') && canPressR && !keyPressed('KeyB') && !keyPressed('KeyT') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressR = false;
 
@@ -372,13 +372,13 @@ function doGameLogic()
 			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
 		}
 		canDoResolveEffect = false;
-	} // end if (keyPressed('r') && canPressR && !keyPressed('b') && !keyPressed('t'))
-	if (!keyPressed('r') )
+	} // end if (keyPressed('KeyR') && canPressR && !keyPressed('KeyB') && !keyPressed('KeyT'))
+	if (!keyPressed('KeyR') )
 	{
 		canPressR = true;
 	}
 
-	if (keyPressed('e') && canPressE)
+	if (keyPressed('KeyE') && canPressE)
 	{
 		canPressE = false;
 
@@ -432,13 +432,13 @@ function doGameLogic()
 			pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
 			return;
 		}
-	} // end if (keyPressed('e') && canPressE)
-	if ( !keyPressed('e') )
+	} // end if (keyPressed('KeyE') && canPressE)
+	if (!keyPressed('KeyE') )
 	{
 		canPressE = true;
 	}
 
-	if (keyPressed('h') && canPressH)
+	if (keyPressed('KeyH') && canPressH)
 	{
 		canPressH = false;
 
@@ -609,8 +609,8 @@ function doGameLogic()
 			updateTopLevel_BVH();
 
 		} // end if (potentialPlacementTileIndeces.length > 0)
-	} // end if (keyPressed('h') && canPressH)
-	if ( !keyPressed('h') )
+	} // end if (keyPressed('KeyH') && canPressH)
+	if (!keyPressed('KeyH') )
 	{
 		canPressH = true;
 	}
@@ -814,8 +814,8 @@ function doGameLogic()
 
 function onDocumentMouseDown(event)
 {
-	if (!inGame || playingTeleportAnimation || keyPressed('r') || keyPressed('e') || 
-		keyPressed('b') || keyPressed('t') || keyPressed('space') || keyPressed('enter') )
+	if (!inGame || playingTeleportAnimation || keyPressed('KeyR') || keyPressed('KeyE') || 
+		keyPressed('KeyB') || keyPressed('KeyT') || keyPressed('Space') || keyPressed('Enter') )
 		return;
 
 	event.preventDefault();
