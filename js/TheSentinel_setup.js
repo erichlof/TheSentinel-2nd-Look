@@ -547,7 +547,7 @@ function initSceneData()
 
 
 	// LANDSCAPE PLANE
-	planeGeometry = new THREE.PlaneBufferGeometry(gridExtent, gridExtent, numTiles, numTiles);
+	planeGeometry = new THREE.PlaneGeometry(gridExtent, gridExtent, numTiles, numTiles);
 
 	if (planeGeometry.index)
 		planeGeometry = planeGeometry.toNonIndexed();
