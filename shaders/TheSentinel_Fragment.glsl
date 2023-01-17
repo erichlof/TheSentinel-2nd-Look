@@ -102,7 +102,7 @@ void GetBoxNode2DArray(in float i, in float depth, inout vec4 boxNodeData0, inou
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------
-void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, in float depth_id, in bool objectIsSelected, in bool doingDissolveEffect )
+void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, in float depth_id, in bool objectIsSelected )
 //--------------------------------------------------------------------------------------------------------------------------------------------------------
 {
 	vec4 currentBoxNodeData0, nodeAData0, nodeBData0, tmpNodeData0;
@@ -123,18 +123,18 @@ void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, 
 	float triangleU = 0.0;
 	float triangleV = 0.0;
 	
-	bool skip = false;
-	bool triangleLookupNeeded = false;
+	int skip = FALSE;
+	int triangleLookupNeeded = FALSE;
 
 	
 	GetBoxNode2DArray(stackptr, depth_id, currentBoxNodeData0, currentBoxNodeData1);
 	currentStackData = vec2(stackptr, BoundingBoxIntersect(currentBoxNodeData0.yzw, currentBoxNodeData1.yzw, rObjOrigin, inverseDir));
 	objStackLevels[0] = currentStackData;
-	skip = (currentStackData.y < hitT);
+	skip = (currentStackData.y < hitT) ? TRUE : FALSE;
 
 	while (true)
         {
-		if (!skip) 
+		if (skip == FALSE) 
                 {
                         // decrease pointer by 1 (0.0 is root level, 24.0 is maximum depth)
                         if (--stackptr < 0.0) // went past the root level, terminate loop
@@ -147,7 +147,7 @@ void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, 
 			
 			GetBoxNode2DArray(currentStackData.x, depth_id, currentBoxNodeData0, currentBoxNodeData1);
                 }
-		skip = false; // reset skip
+		skip = FALSE; // reset skip
 		
 
 		if (currentBoxNodeData0.x < 0.0) // < 0.0 signifies an inner node
@@ -174,18 +174,18 @@ void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, 
 				currentStackData = stackDataB;
 				currentBoxNodeData0 = nodeBData0;
 				currentBoxNodeData1 = nodeBData1;
-				skip = true; // this will prevent the stackptr from decreasing by 1
+				skip = TRUE; // this will prevent the stackptr from decreasing by 1
 			}
 			if (stackDataA.y < hitT) // see if branch 'a' (the smaller rayT) needs to be processed 
 			{
-				if (skip) // if larger branch 'b' needed to be processed also,
+				if (skip == TRUE) // if larger branch 'b' needed to be processed also,
 					objStackLevels[int(stackptr++)] = stackDataB; // cue larger branch 'b' for future round
 							// also, increase pointer by 1
 				
 				currentStackData = stackDataA;
 				currentBoxNodeData0 = nodeAData0; 
 				currentBoxNodeData1 = nodeAData1;
-				skip = true; // this will prevent the stackptr from decreasing by 1
+				skip = TRUE; // this will prevent the stackptr from decreasing by 1
 			}
 
 			continue;
@@ -213,13 +213,13 @@ void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, 
 			triangleID = id;
 			triangleU = tu;
 			triangleV = tv;
-			triangleLookupNeeded = true;
+			triangleLookupNeeded = TRUE;
 		}
 	      
-        } // end while (true)
+        } // end while (TRUE)
 
 
-	if (triangleLookupNeeded)
+	if (triangleLookupNeeded == TRUE)
 	{
 		uv0 = ivec2( mod(triangleID + 0.0, 256.0), (triangleID + 0.0) * INV_TEXTURE_WIDTH );
 		uv1 = ivec2( mod(triangleID + 1.0, 256.0), (triangleID + 1.0) * INV_TEXTURE_WIDTH );
@@ -246,10 +246,10 @@ void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, 
 		// else use vertex normals
 		//triangleW = 1.0 - triangleU - triangleV;
 		//hitNormal = normalize(triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
-		hitColor = (objectIsSelected && !doingDissolveEffect) ? vec3(0,2,1) : vec3(vd4.w, vd5.xy);
+		hitColor = (objectIsSelected && !uDoingDissolveEffect) ? vec3(0,2,1) : vec3(vd4.w, vd5.xy);
 		hitType = depth_id == 4.0 ? COAT : DIFF;
 
-	} // end if (triangleLookupNeeded)
+	} // end if (triangleLookupNeeded == TRUE)
 
 } // end void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, in float depth_id, in bool objectIsSelected, in bool doingDissolveEffect )
 
@@ -288,9 +288,9 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 
 	int objectCount = 0;
 	
-	bool skip = false;
-	bool triangleLookupNeeded = false;
-	bool isRayExiting;
+	int skip = FALSE;
+	int triangleLookupNeeded = FALSE;
+	int isRayExiting;
 	bool objectIsSelected = false;
 
 	// reset intersection record's hitT value
@@ -315,11 +315,11 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 	GetBoxNodeData(stackptr, tLandscape_AABBTexture, currentBoxNodeData0, currentBoxNodeData1);
 	currentStackData = vec2(stackptr, BoundingBoxIntersect(currentBoxNodeData0.yzw, currentBoxNodeData1.yzw, rayOrigin, inverseDir));
 	stackLevels[0] = currentStackData;
-	skip = (currentStackData.y < hitT);
+	skip = (currentStackData.y < hitT) ? TRUE : FALSE;
 
 	while (true)
         {
-		if (!skip) 
+		if (skip == FALSE) 
                 {
                         // decrease pointer by 1 (0.0 is root level, 24.0 is maximum depth)
                         if (--stackptr < 0.0) // went past the root level, terminate loop
@@ -332,7 +332,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 			
 			GetBoxNodeData(currentStackData.x, tLandscape_AABBTexture, currentBoxNodeData0, currentBoxNodeData1);
                 }
-		skip = false; // reset skip
+		skip = FALSE; // reset skip
 		
 
 		if (currentBoxNodeData0.x < 0.0) // < 0.0 signifies an inner node
@@ -359,18 +359,18 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 				currentStackData = stackDataB;
 				currentBoxNodeData0 = nodeBData0;
 				currentBoxNodeData1 = nodeBData1;
-				skip = true; // this will prevent the stackptr from decreasing by 1
+				skip = TRUE; // this will prevent the stackptr from decreasing by 1
 			}
 			if (stackDataA.y < hitT) // see if branch 'a' (the smaller rayT) needs to be processed 
 			{
-				if (skip) // if larger branch 'b' needed to be processed also,
+				if (skip == TRUE) // if larger branch 'b' needed to be processed also,
 					stackLevels[int(stackptr++)] = stackDataB; // cue larger branch 'b' for future round
 							// also, increase pointer by 1
 				
 				currentStackData = stackDataA;
 				currentBoxNodeData0 = nodeAData0; 
 				currentBoxNodeData1 = nodeAData1;
-				skip = true; // this will prevent the stackptr from decreasing by 1
+				skip = TRUE; // this will prevent the stackptr from decreasing by 1
 			}
 
 			continue;
@@ -398,13 +398,13 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 			triangleID = id;
 			triangleU = tu;
 			triangleV = tv;
-			triangleLookupNeeded = true;
+			triangleLookupNeeded = TRUE;
 		}
 	      
-        } // end while (true)
+        } // end while (TRUE)
 
 
-	if (triangleLookupNeeded)
+	if (triangleLookupNeeded == TRUE)
 	{
 		uv0 = ivec2( mod(triangleID + 0.0, 256.0), (triangleID + 0.0) * INV_TEXTURE_WIDTH );
 		uv1 = ivec2( mod(triangleID + 1.0, 256.0), (triangleID + 1.0) * INV_TEXTURE_WIDTH );
@@ -481,7 +481,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 
 		} // end if (hitColor == vec3(1.0))
 
-	} // end if (triangleLookupNeeded)
+	} // end if (triangleLookupNeeded == TRUE)
 
 
 	// TOP_LEVEL BVH /////////////////
@@ -491,11 +491,11 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 	GetBoxNodeUniform(stackptr, currentBoxNodeData0, currentBoxNodeData1);
 	currentStackData = vec2(stackptr, BoundingBoxIntersect(currentBoxNodeData0.yzw, currentBoxNodeData1.yzw, rayOrigin, inverseDir));
 	stackLevels[0] = currentStackData;
-	skip = (currentStackData.y < hitT);
+	skip = (currentStackData.y < hitT) ? TRUE : FALSE;
 
 	while (true)
         {
-		if (!skip) 
+		if (skip == FALSE) 
                 {
                         // decrease pointer by 1 (0.0 is root level, 24.0 is maximum depth)
                         if (--stackptr < 0.0) // went past the root level, terminate loop
@@ -508,7 +508,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 			
 			GetBoxNodeUniform(currentStackData.x, currentBoxNodeData0, currentBoxNodeData1);
                 }
-		skip = false; // reset skip
+		skip = FALSE; // reset skip
 		
 
 		if (currentBoxNodeData0.x < 0.0) // < 0.0 signifies an inner node
@@ -535,18 +535,18 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 				currentStackData = stackDataB;
 				currentBoxNodeData0 = nodeBData0;
 				currentBoxNodeData1 = nodeBData1;
-				skip = true; // this will prevent the stackptr from decreasing by 1
+				skip = TRUE; // this will prevent the stackptr from decreasing by 1
 			}
 			if (stackDataA.y < hitT) // see if branch 'a' (the smaller rayT) needs to be processed 
 			{
-				if (skip) // if larger branch 'b' needed to be processed also,
+				if (skip == TRUE) // if larger branch 'b' needed to be processed also,
 					stackLevels[int(stackptr++)] = stackDataB; // cue larger branch 'b' for future round
 							// also, increase pointer by 1
 				
 				currentStackData = stackDataA;
 				currentBoxNodeData0 = nodeAData0; 
 				currentBoxNodeData1 = nodeAData1;
-				skip = true; // this will prevent the stackptr from decreasing by 1
+				skip = TRUE; // this will prevent the stackptr from decreasing by 1
 			}
 
 			continue;
@@ -570,9 +570,9 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 		rObjDirection = vec3( invMatrix * vec4(rayDirection, 0.0) );
 
 		intersectedObjectID = float(objectCount);
-		Object_BVH_Intersect(rObjOrigin, rObjDirection, mat3(invMatrix), model_id, objectIsSelected, uDoingDissolveEffect);
+		Object_BVH_Intersect(rObjOrigin, rObjDirection, mat3(invMatrix), model_id, objectIsSelected);
 
-        } // end while (true)
+        } // end while (TRUE)
 
 } // end void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float intersectedObjectID )
 
@@ -595,12 +595,15 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 
 	vec3 accumCol = vec3(0);
         vec3 mask = vec3(1);
+	vec3 reflectionMask = vec3(1);
+	vec3 reflectionRayOrigin = vec3(0);
+	vec3 reflectionRayDirection = vec3(0);
 	vec3 tdir;
 	vec3 x, n, nl;
 	vec3 up = vec3(0, 1, 0);
         
 	float nc, nt, ratioIoR, Re, Tr;
-	float P, RP, TP;
+	///float P, RP, TP;
 	float weight;
 	float randChoose;
 	float partialAmount = 0.0;
@@ -608,13 +611,13 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 
 	int diffuseCount = 0;
 
-	bool bounceIsSpecular = true;
-	bool sampleLight = false;
+	int bounceIsSpecular = TRUE;
+	int sampleLight = FALSE;
+	int willNeedReflectionRay = FALSE;
 
 	pixelSharpness = 1.01;
 
-
-	for (int bounces = 0; bounces < 4; bounces++)
+	for (int bounces = 0; bounces < 6; bounces++)
 	{
 
 		SceneIntersect(rayOrigin, rayDirection, bounces, intersectedObjectID);
@@ -634,18 +637,48 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 
 		if (hitT == INFINITY)
 		{
-			if (sampleLight)
-				accumCol = mix(accumCol, mask * getSkyColor(rayDirection), weight);
-			else
-				accumCol = mask * getSkyColor(rayDirection);
 			
+			if (sampleLight == TRUE)
+				accumCol += mix(accumCol, mask * getSkyColor(rayDirection), weight);
+			else
+				accumCol += mask * getSkyColor(rayDirection);
+			
+			if (willNeedReflectionRay == TRUE)
+			{
+				mask = reflectionMask;
+				rayOrigin = reflectionRayOrigin;
+				rayDirection = reflectionRayDirection;
+
+				willNeedReflectionRay = FALSE;
+				bounceIsSpecular = TRUE;
+				sampleLight = FALSE;
+				diffuseCount = 0;
+				continue;
+			}
+
 			break;
 		}
 
 
-		// if we get here and sampleLight is still true, sun targeting ray failed to find the sun
-		if (sampleLight) 
+		// if we get here and sampleLight is still TRUE, shadow ray failed to find the light source 
+		// the ray hit an occluding object along its way to the light
+		if (sampleLight == TRUE)
+		{
+			if (willNeedReflectionRay == TRUE)
+			{
+				mask = reflectionMask;
+				rayOrigin = reflectionRayOrigin;
+				rayDirection = reflectionRayDirection;
+
+				willNeedReflectionRay = FALSE;
+				bounceIsSpecular = TRUE;
+				sampleLight = FALSE;
+				diffuseCount = 0;
+				continue;
+			}
+
 			break;
+		}
 	
 
 		    
@@ -655,17 +688,17 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 			
 			mask *= hitColor;
 
-			if (bounceIsSpecular) 
-				accumCol = mask * 0.5; // ambient color
+			if (bounceIsSpecular == TRUE) 
+				accumCol += mask * 0.5; // ambient color
 
-			bounceIsSpecular = false;
+			bounceIsSpecular = FALSE;
 
 			rayDirection = randomDirectionInSpecularLobe(uSunDirection, 0.03);
 			rayOrigin = x + nl * uEPS_intersect;
 			
 			weight = clamp(dot(nl, rayDirection), 0.0, 1.0);
 			
-			sampleLight = true;
+			sampleLight = TRUE;
 			continue;
 			
 		} // end if (hitType == DIFF)
@@ -682,48 +715,42 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 		
 		if (hitType == COAT)  // Diffuse object underneath with ClearCoat on top
 		{
-			if (bounces == 0)
-			 	pixelSharpness = -1.0;
+			pixelSharpness = (bounces == 0) ? -1.0 : pixelSharpness;
 
 			nc = 1.0; // IOR of Air
-			nt = 1.6; // IOR of Clear Coat
+			nt = 1.5; // IOR of Clear Coat
 			Re = calcFresnelReflectance(rayDirection, nl, nc, nt, ratioIoR);
 			Tr = 1.0 - Re;
-			P  = 0.25 + (0.5 * Re);
-                	RP = Re / P;
-                	TP = Tr / (1.0 - P);
-
-			if (bounces == 0 && rand() < P)
+			
+			if (bounces == 0)// || (bounces == 1 && hitObjectID != objectID && bounceIsSpecular == TRUE))
 			{
-				
-				mask *= RP;
-				rayDirection = reflect(rayDirection, nl);
-				rayOrigin = x + nl * uEPS_intersect;
-				continue;
+				reflectionMask = mask * Re;
+				reflectionRayDirection = reflect(rayDirection, nl); // reflect ray from surface
+				reflectionRayOrigin = x + nl * uEPS_intersect;
+				willNeedReflectionRay = TRUE;
 			}
 
 			diffuseCount++;
 			
 			if (bounces == 0)
-				mask *= TP;
-				
+				mask *= Tr;
 			mask *= hitColor;
 
-			if (bounceIsSpecular) 
+			if (bounceIsSpecular == TRUE) 
 			{
-				accumCol = mask * getSkyColor(randomCosWeightedDirectionInHemisphere(up)); // ambient color
-				accumCol = mix(mask, accumCol, 0.5);
+				// ambient color
+				accumCol += mix(mask, mask * getSkyColor(randomCosWeightedDirectionInHemisphere(up)), 0.5);
 			}
 				
 			
-			bounceIsSpecular = false;
+			bounceIsSpecular = FALSE;
 			
 			rayDirection = randomDirectionInSpecularLobe(uSunDirection, 0.03);
 			rayOrigin = x + nl * uEPS_intersect;
 			
 			weight = clamp(dot(nl, rayDirection), 0.0, 1.0);
 			
-			sampleLight = true;
+			sampleLight = TRUE;
 			continue;
                         
 		} //end if (hitType == COAT)
