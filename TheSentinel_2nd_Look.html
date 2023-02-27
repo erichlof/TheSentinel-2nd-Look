@@ -7,26 +7,26 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1">
 		<link href="css/default.css" rel="stylesheet">
 
-		<script src="js/es-module-shims.js"></script>
+		<script async src="js/es-module-shims.js"></script>
 		<script type="importmap">
 		{
 			"imports": {
-				"three": "/js/three.module.min.js"
+				"three": "./js/three.module.min.js"
 			}
 		}
 		</script>
 
 		<script type="module">
-			import * as THREE from '/js/three.module.min.js';
+			import * as THREE from 'three';// '/js/three.module.min.js';
 			window.THREE = THREE;
-			import Stats from '/js/stats.module.js';
+			import Stats from './js/stats.module.js';
 			window.Stats = Stats;
-			import GUI from '/js/lil-gui.module.min.js';
+			import GUI from './js/lil-gui.module.min.js';
 			window.GUI = GUI;
 				
-			import {mergeBufferGeometries} from '/js/BufferGeometryUtils.js';
+			import {mergeBufferGeometries} from './js/BufferGeometryUtils.js';
 			window.mergeBufferGeometries = mergeBufferGeometries;
-			import {GLTFLoader} from '/js/GLTFLoader.js';
+			import {GLTFLoader} from './js/GLTFLoader.js';
 			window.GLTFLoader = GLTFLoader;
 		</script>
 	</head>
