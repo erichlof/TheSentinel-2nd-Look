@@ -46,7 +46,7 @@ let canPressA = true;
 let canPressT = true;
 let canPressH = true;
 let inGame = false;
-let simplex = new THREE.SimplexNoise();
+let simplex = new SimplexNoise();
 let vertexHeights = new Float32Array(numVertices * numVertices);
 let levelCounter = -1;
 let upVector = new THREE.Vector3(0, 1, 0);
@@ -266,7 +266,7 @@ function load_GLTF_Model(pathToThisModel, model_ID)
 	let triangleMaterialMarkers = [];
 
 
-	let gltfLoader = new THREE.GLTFLoader();
+	let gltfLoader = new GLTFLoader();
 
 	gltfLoader.load(pathToThisModel, function (meshGroup)
 	{
@@ -303,7 +303,7 @@ function load_GLTF_Model(pathToThisModel, model_ID)
 			geoList.push(meshList[i].geometry);
 		}
 
-		modelMesh.geometry = THREE.BufferGeometryUtils.mergeBufferGeometries(geoList);
+		modelMesh.geometry = mergeBufferGeometries(geoList);
 
 		if (modelMesh.geometry.index)
 			modelMesh.geometry = modelMesh.geometry.toNonIndexed();
