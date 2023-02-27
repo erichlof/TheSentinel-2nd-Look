@@ -10,7 +10,7 @@
  * You can pass in a random number generator object if you like.
  * It is assumed to have a random() method.
  */
-THREE.SimplexNoise = function (r)
+SimplexNoise = function (r)
 {
 
         if (r == undefined) r = Math;
@@ -60,28 +60,28 @@ THREE.SimplexNoise = function (r)
 
 };
 
-THREE.SimplexNoise.prototype.dot = function (g, x, y)
+SimplexNoise.prototype.dot = function (g, x, y)
 {
 
         return g[0] * x + g[1] * y;
 
 };
 
-THREE.SimplexNoise.prototype.dot3 = function (g, x, y, z)
+SimplexNoise.prototype.dot3 = function (g, x, y, z)
 {
 
         return g[0] * x + g[1] * y + g[2] * z;
 
 };
 
-THREE.SimplexNoise.prototype.dot4 = function (g, x, y, z, w)
+SimplexNoise.prototype.dot4 = function (g, x, y, z, w)
 {
 
         return g[0] * x + g[1] * y + g[2] * z + g[3] * w;
 
 };
 
-THREE.SimplexNoise.prototype.noise = function (xin, yin)
+SimplexNoise.prototype.noise = function (xin, yin)
 {
 
         var n0, n1, n2; // Noise contributions from the three corners
@@ -164,7 +164,7 @@ THREE.SimplexNoise.prototype.noise = function (xin, yin)
 };
 
 // 3D simplex noise
-THREE.SimplexNoise.prototype.noise3d = function (xin, yin, zin)
+SimplexNoise.prototype.noise3d = function (xin, yin, zin)
 {
 
         var n0, n1, n2, n3; // Noise contributions from the four corners
@@ -305,7 +305,7 @@ THREE.SimplexNoise.prototype.noise3d = function (xin, yin, zin)
 };
 
 // 4D simplex noise
-THREE.SimplexNoise.prototype.noise4d = function (x, y, z, w)
+SimplexNoise.prototype.noise4d = function (x, y, z, w)
 {
 
         // For faster and easier lookups
