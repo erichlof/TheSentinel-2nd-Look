@@ -11,8 +11,8 @@
 		<script type="importmap">
 		{
 			"imports": {
-				"three": "/js/three.module.min.js",
-				"BufferGeometryUtils": "/js/BufferGeometryUtils.js"
+				"three": "./js/three.module.min.js",
+				"BufferGeometryUtils": "./js/BufferGeometryUtils.js"
 			}
 		}
 		</script>
@@ -20,14 +20,14 @@
 		<script type="module">
 			import * as THREE from 'three';
 			window.THREE = THREE;
-			import Stats from '/js/stats.module.js';
+			import Stats from './js/stats.module.js';
 			window.Stats = Stats;
-			import GUI from '/js/lil-gui.module.min.js';
+			import GUI from './js/lil-gui.module.min.js';
 			window.GUI = GUI;
 				
 			import {mergeBufferGeometries} from 'BufferGeometryUtils';
 			window.mergeBufferGeometries = mergeBufferGeometries;
-			import {GLTFLoader} from '/js/GLTFLoader.js';
+			import {GLTFLoader} from './js/GLTFLoader.js';
 			window.GLTFLoader = GLTFLoader;
 		</script>
 	</head>
