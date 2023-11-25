@@ -296,18 +296,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 	// reset intersection record's hitT value
 	hitT = INFINITY;
 
-	// viewing ray target metal sphere
-	d = SphereIntersect( uViewRaySphereRadius, uViewRayTargetPosition, rayOrigin, rayDirection );
-	if (d < hitT)
-	{
-		hitT = d;
-		hitNormal = (rayOrigin + rayDirection * hitT) - uViewRayTargetPosition;
-		hitEmission = vec3(0);
-		hitColor = vec3(1);//vec3(1.0, 0.765557, 0.336057);
-		hitType = SPEC;
-		intersectedObjectID = float(objectCount);
-	}
-	objectCount++;
+	
 
 	// LANDSCAPE BVH ////////////
 
@@ -573,6 +562,20 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 		Object_BVH_Intersect(rObjOrigin, rObjDirection, mat3(invMatrix), model_id, objectIsSelected);
 
         } // end while (TRUE)
+	objectCount++;
+
+	// viewing ray target metal sphere
+	d = SphereIntersect( uViewRaySphereRadius, uViewRayTargetPosition, rayOrigin, rayDirection );
+	if (d < hitT)
+	{
+		hitT = d;
+		hitNormal = (rayOrigin + rayDirection * hitT) - uViewRayTargetPosition;
+		hitEmission = vec3(0);
+		hitColor = vec3(1);//vec3(1.0, 0.765557, 0.336057);
+		hitType = SPEC;
+		intersectedObjectID = float(objectCount);
+	}
+	
 
 } // end void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float intersectedObjectID )
 
