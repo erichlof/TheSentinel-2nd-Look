@@ -37,6 +37,7 @@ vec3 rayOrigin, rayDirection;
 // recorded intersection data:
 vec3 hitNormal, hitEmission, hitColor;
 float hitT;
+float hitObjectID = -INFINITY;
 int hitTextureID;
 int hitType = -100;
 
@@ -255,7 +256,7 @@ void Object_BVH_Intersect( vec3 rObjOrigin, vec3 rObjDirection, mat3 invMatrix, 
 
 
 //--------------------------------------------------------------------------------------------------
-void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float intersectedObjectID )
+void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float hitObjectID )
 //--------------------------------------------------------------------------------------------------
 {
 	mat4 invMatrix;
@@ -420,14 +421,14 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 		hitNormal = (triangleW * vec3(vd4.zw, vd5.x) + triangleU * vec3(vd5.yzw) + triangleV * vec3(vd6.xyz));
 		hitColor = (triangleID == uSelectedTileIndex || triangleID == uSelectedTileIndex + 8.0) ? vec3(0,2,1) : vd2.yzw;
 		hitType = DIFF;
-		intersectedObjectID = float(objectCount);
+		hitObjectID = float(objectCount);
 		objectCount++;
 
 		hitPos = rayOrigin + rayDirection * hitT;
 		if (hitColor == vec3(1.0))
 		{
 			hitType = COAT;
-			intersectedObjectID = float(objectCount);
+			hitObjectID = float(objectCount);
 			objectCount++;
 			
 			posX = hitPos.x * 0.1;
@@ -442,28 +443,28 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 				hitType = SPEC;
 				hitColor = vec3(0, 0, 1); // blue trim
 				hitNormal.x -= 1.0;
-				intersectedObjectID = float(objectCount);
+				hitObjectID = float(objectCount);
 			}
 			if (posX - gridX > oneMinusLineThickness) // to the left of snap grid
 			{
 				hitType = SPEC;
 				hitColor = vec3(0, 0, 1); // blue trim
 				hitNormal.x += 1.0;
-				intersectedObjectID = float(objectCount);
+				hitObjectID = float(objectCount);
 			}
 			if (posZ - gridZ < lineThickness) // in front of snap grid
 			{
 				hitType = SPEC;
 				hitColor = vec3(0, 0, 1); // blue trim
 				hitNormal.z -= 1.0;
-				intersectedObjectID = float(objectCount);
+				hitObjectID = float(objectCount);
 			}
 			if (posZ - gridZ > oneMinusLineThickness) // behind snap grid
 			{
 				hitType = SPEC;
 				hitColor = vec3(0, 0, 1); // blue trim
 				hitNormal.z += 1.0;
-				intersectedObjectID = float(objectCount);
+				hitObjectID = float(objectCount);
 			}
 
 			///hitNormal = normalize(hitNormal);
@@ -558,7 +559,7 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 		rObjOrigin = vec3( invMatrix * vec4(rayOrigin, 1.0) );
 		rObjDirection = vec3( invMatrix * vec4(rayDirection, 0.0) );
 
-		intersectedObjectID = float(objectCount);
+		hitObjectID = float(objectCount);
 		Object_BVH_Intersect(rObjOrigin, rObjDirection, mat3(invMatrix), model_id, objectIsSelected);
 
         } // end while (TRUE)
@@ -573,11 +574,11 @@ void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float i
 		hitEmission = vec3(0);
 		hitColor = vec3(1);//vec3(1.0, 0.765557, 0.336057);
 		hitType = SPEC;
-		intersectedObjectID = float(objectCount);
+		hitObjectID = float(objectCount);
 	}
 	
 
-} // end void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float intersectedObjectID )
+} // end void SceneIntersect( vec3 rayOrigin, vec3 rayDirection, int bounces, out float hitObjectID )
 
 
 
@@ -601,29 +602,36 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 	vec3 reflectionMask = vec3(1);
 	vec3 reflectionRayOrigin = vec3(0);
 	vec3 reflectionRayDirection = vec3(0);
-	vec3 tdir;
 	vec3 x, n, nl;
 	vec3 up = vec3(0, 1, 0);
         
 	float nc, nt, ratioIoR, Re, Tr;
-	///float P, RP, TP;
-	float weight;
 	float randChoose;
 	float partialAmount = 0.0;
-	float intersectedObjectID;
+	float previousObjectID;
 
+	int reflectionBounces = -1;
 	int diffuseCount = 0;
+	int previousIntersecType = -100;
+	hitType = -100;
 
 	int bounceIsSpecular = TRUE;
 	int sampleLight = FALSE;
 	int willNeedReflectionRay = FALSE;
+	int isReflectionTime = FALSE;
+	int reflectionNeedsToBeSharp = FALSE;
 
-	pixelSharpness = 1.01;
+	
 
 	for (int bounces = 0; bounces < 6; bounces++)
 	{
+		if (isReflectionTime == TRUE)
+			reflectionBounces++;
 
-		SceneIntersect(rayOrigin, rayDirection, bounces, intersectedObjectID);
+		previousIntersecType = hitType;
+		previousObjectID = hitObjectID;
+
+		SceneIntersect(rayOrigin, rayDirection, bounces, hitObjectID);
 
 		// useful data 
 		n = normalize(hitNormal);
@@ -632,18 +640,26 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 
 		if (bounces == 0)
 		{
+			objectID = hitObjectID;
+		}
+		if (isReflectionTime == FALSE && diffuseCount == 0 && hitObjectID != previousObjectID)
+		{
 			objectNormal = nl;
 			objectColor = hitColor;
-			objectID = intersectedObjectID;
+		}
+		if (reflectionNeedsToBeSharp == TRUE && reflectionBounces == 0)
+		{
+			objectNormal = nl;
+			objectColor = hitColor;
 		}
 
 
 		if (hitT == INFINITY)
 		{
+			if (bounces == 0)
+				pixelSharpness = 1.01;
 			
-			if (sampleLight == TRUE)
-				accumCol += mix(accumCol, mask * getSkyColor(rayDirection), weight);
-			else
+			if (bounceIsSpecular == TRUE || sampleLight == TRUE)
 				accumCol += mask * getSkyColor(rayDirection);
 			
 			if (willNeedReflectionRay == TRUE)
@@ -655,7 +671,7 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 				willNeedReflectionRay = FALSE;
 				bounceIsSpecular = TRUE;
 				sampleLight = FALSE;
-				diffuseCount = 0;
+				isReflectionTime = TRUE;
 				continue;
 			}
 
@@ -676,7 +692,7 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 				willNeedReflectionRay = FALSE;
 				bounceIsSpecular = TRUE;
 				sampleLight = FALSE;
-				diffuseCount = 0;
+				isReflectionTime = TRUE;
 				continue;
 			}
 
@@ -691,15 +707,18 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 			
 			mask *= hitColor;
 
-			if (bounceIsSpecular == TRUE) 
-				accumCol += mask * 0.5; // ambient color
+			if (bounceIsSpecular == TRUE)
+			{
+				accumCol += mask * 0.4; // ambient color
+			}
+				
 
 			bounceIsSpecular = FALSE;
 
 			rayDirection = randomDirectionInSpecularLobe(uSunDirection, 0.03);
 			rayOrigin = x + nl * uEPS_intersect;
 			
-			weight = clamp(dot(nl, rayDirection), 0.0, 1.0);
+			mask *= clamp(dot(nl, rayDirection), 0.0, 1.0);
 			
 			sampleLight = TRUE;
 			continue;
@@ -718,47 +737,43 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 		
 		if (hitType == COAT)  // Diffuse object underneath with ClearCoat on top
 		{
-			pixelSharpness = (bounces == 0) ? -1.0 : pixelSharpness;
-
 			nc = 1.0; // IOR of Air
 			nt = 1.5; // IOR of Clear Coat
 			Re = calcFresnelReflectance(rayDirection, nl, nc, nt, ratioIoR);
 			Tr = 1.0 - Re;
 			
-			if (bounces == 0)// || (bounces == 1 && hitObjectID != objectID && bounceIsSpecular == TRUE))
+			if (bounces == 0)
 			{
 				reflectionMask = mask * Re;
 				reflectionRayDirection = reflect(rayDirection, nl); // reflect ray from surface
 				reflectionRayOrigin = x + nl * uEPS_intersect;
 				willNeedReflectionRay = TRUE;
+				reflectionNeedsToBeSharp = TRUE;
 			}
 
 			diffuseCount++;
 			
-			if (bounces == 0)
-				mask *= Tr;
+			mask *= Tr;
 			mask *= hitColor;
 
 			if (bounceIsSpecular == TRUE) 
 			{
-				// ambient color
-				accumCol += mix(mask, mask * getSkyColor(randomCosWeightedDirectionInHemisphere(up)), 0.5);
+				accumCol += mask * 0.4; // ambient color
 			}
 				
-			
 			bounceIsSpecular = FALSE;
 			
 			rayDirection = randomDirectionInSpecularLobe(uSunDirection, 0.03);
 			rayOrigin = x + nl * uEPS_intersect;
 			
-			weight = clamp(dot(nl, rayDirection), 0.0, 1.0);
+			mask *= clamp(dot(nl, rayDirection), 0.0, 1.0);
 			
 			sampleLight = TRUE;
 			continue;
                         
 		} //end if (hitType == COAT)
 		
-	} // end for (int bounces = 0; bounces < 3; bounces++)
+	} // end for (int bounces = 0; bounces < 6; bounces++)
 	
 	return max(vec3(0), accumCol);
 
@@ -797,7 +812,8 @@ void main( void )
 	randNumber = 0.0; // the final randomly-generated number (range: 0.0 to 1.0)
 	blueNoise = texelFetch(tBlueNoiseTexture, ivec2(mod(floor(gl_FragCoord.xy), 128.0)), 0).r;
 
-	vec2 pixelOffset = vec2( tentFilter(rand()), tentFilter(rand()) ) * 0.5;
+	vec2 pixelOffset = vec2( tentFilter(rand()), tentFilter(rand()) );
+	pixelOffset *= uCameraIsMoving ? 0.5 : 1.0;
 
 	// we must map pixelPos into the range -1.0 to +1.0
 	vec2 pixelPos = ((gl_FragCoord.xy + vec2(0.5) + pixelOffset) / uResolution) * 2.0 - 1.0;
@@ -880,18 +896,32 @@ void main( void )
 		currentPixel.rgb *= 0.5;
 	} */
 	
-	if (colorDifference >= 1.0 || normalDifference >= 1.0)// || objectDifference >= 1.0)
-		pixelSharpness = 1.01;
-
 	currentPixel.a = pixelSharpness;
 
-	// makes sharp edges more stable
-	if (previousPixel.a == 1.01)
-		currentPixel.a = 1.01;
+	// check for all edges that are not light sources
+	if (pixelSharpness < 1.01 && (colorDifference >= 1.0 || normalDifference >= 1.0 || objectDifference >= 1.0)) // all other edges
+		currentPixel.a = pixelSharpness = 1.0;
 
+	// makes light source edges (shape boundaries) more stable
+	if (previousPixel.a == 1.01)
+	{
+		if (pixelSharpness > 0.0)
+			currentPixel.a = 1.01;
+		else currentPixel.a = 1.0;
+	}
+
+	// makes sharp edges more stable
+	if (!uCameraIsMoving && previousPixel.a == 1.0)
+	{
+		if (pixelSharpness > 0.0)
+			currentPixel.a = 1.01;
+		else currentPixel.a = 1.0;
+	}
+		
 	// for dynamic scenes (to clear out old, dark, sharp pixel trails left behind from moving objects)
-	if (previousPixel.a == 1.01 && rng() < 0.05)
-		currentPixel.a = 1.0;
+	if (previousPixel.a == 1.0 && rng() < 0.05)
+		currentPixel.a = 0.0;
+
 	
 	pc_fragColor = vec4(previousPixel.rgb + currentPixel.rgb, currentPixel.a);	
 }
