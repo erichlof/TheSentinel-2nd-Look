@@ -887,14 +887,6 @@ void main( void )
                 previousPixel.rgb *= 0.8; // motion-blur trail amount (old image)
                 currentPixel.rgb *= 0.2; // brightness of new image (noisy)
         }
-
-	// if current raytraced pixel didn't return any color value, just use the previous frame's pixel color
-	/* if (currentPixel.rgb == vec3(0.0))
-	{
-		currentPixel.rgb = previousPixel.rgb;
-		previousPixel.rgb *= 0.5;
-		currentPixel.rgb *= 0.5;
-	} */
 	
 	currentPixel.a = pixelSharpness;
 
