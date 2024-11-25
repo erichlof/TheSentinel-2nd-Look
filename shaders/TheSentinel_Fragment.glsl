@@ -870,8 +870,8 @@ void main( void )
 
 	if (uCameraIsMoving)
 	{
-                previousPixel.rgb *= 0.5; // motion-blur trail amount (old image)
-		currentPixel.rgb *= 0.5; // brightness of new image (noisy)
+                previousPixel.rgb *= 0.6; // motion-blur trail amount (old image)
+		currentPixel.rgb *= 0.4; // brightness of new image (noisy)
 		
 		previousPixel.a = 0.0;
         }
@@ -903,13 +903,9 @@ void main( void )
 	}
 
 	// makes sharp edges more stable
-	if (!uCameraIsMoving && previousPixel.a == 1.0)
-	{
-		if (pixelSharpness > 0.0)
-			currentPixel.a = 1.01;
-		else currentPixel.a = 1.0;
-	}
-		
+	if (previousPixel.a == 1.0)
+		currentPixel.a = 1.0;
+	
 	// for dynamic scenes (to clear out old, dark, sharp pixel trails left behind from moving objects)
 	if (previousPixel.a == 1.0 && rng() < 0.05)
 		currentPixel.a = 0.0;
