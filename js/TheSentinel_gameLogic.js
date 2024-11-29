@@ -305,8 +305,7 @@ function doGameLogic()
 				landscape_vpa[vertexIndex + 2] + 5);
 			game_Objects[gameObjectIndex].position.y += 4.6;
 
-			game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
-
+			game_Objects[gameObjectIndex].rotation.copy(cameraControlsYawObject.rotation);
 			game_Objects[gameObjectIndex].updateMatrixWorld(true); // required for writing to uniforms below
 
 			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
@@ -328,7 +327,7 @@ function doGameLogic()
 			game_Objects[gameObjectIndex].position.y = game_Objects[gameObjectIndex].level;
 			game_Objects[gameObjectIndex].position.y += 4.6;
 
-			game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
+			game_Objects[gameObjectIndex].rotation.copy(cameraControlsYawObject.rotation);
 			game_Objects[gameObjectIndex].updateMatrixWorld(true);
 			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
 			uObj3D_InvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
@@ -352,7 +351,7 @@ function doGameLogic()
 			game_Objects[gameObjectIndex].position.y = game_Objects[gameObjectIndex].level;
 			game_Objects[gameObjectIndex].position.y += 4.6;
 
-			game_Objects[gameObjectIndex].rotation.y = cameraControlsYawObject.rotation.y;
+			game_Objects[gameObjectIndex].rotation.copy(cameraControlsYawObject.rotation);
 			game_Objects[gameObjectIndex].updateMatrixWorld(true);
 			uObj3D_InvMatrices[gameObjectIndex].copy(game_Objects[gameObjectIndex].matrixWorld).invert();
 			uObj3D_InvMatrices[gameObjectIndex].elements[15] = ROBOT_MODEL_ID;
@@ -398,7 +397,7 @@ function doGameLogic()
 			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
 			animationTargetPosition.y += 4;
 
-			//worldCamera.lookAt(animationTargetPosition);
+			//worldCamera.lookAt(animationTargetPosition); // a little too jarring when teleport starts
 
 			userCurrentAperture = apertureSize;
 			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
@@ -423,7 +422,7 @@ function doGameLogic()
 			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
 			animationTargetPosition.y += 4;
 
-			//worldCamera.lookAt(animationTargetPosition);
+			//worldCamera.lookAt(animationTargetPosition); // a little too jarring when teleport starts
 
 			userCurrentAperture = apertureSize;
 			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
@@ -591,17 +590,27 @@ function doGameLogic()
 			if (game_Objects[playerRobotIndex].position.z > 0)
 			{
 				if (game_Objects[playerRobotIndex].position.x > 0)
+				{
 					cameraControlsYawObject.rotation.y += Math.PI * 0.5;
+				}	
 				if (game_Objects[playerRobotIndex].position.x < 0)
+				{
 					cameraControlsYawObject.rotation.y -= Math.PI * 0.5;
+				}
+					
 			}
 			if (game_Objects[playerRobotIndex].position.z < 0)
 			{
 				cameraControlsYawObject.rotation.y = Math.PI;
+				
 				if (game_Objects[playerRobotIndex].position.x > 0)
+				{
 					cameraControlsYawObject.rotation.y -= Math.PI * 0.5;
+				}
 				if (game_Objects[playerRobotIndex].position.x < 0)
+				{
 					cameraControlsYawObject.rotation.y += Math.PI * 0.5;
+				}	
 			}
 
 			playerUnitsOfEnergy -= 3; // hyperspace costs 3 energy units
@@ -618,15 +627,12 @@ function doGameLogic()
 	// handle player camera rotation
 
 	// rotate player's robot to match mouse rotation
-	game_Objects[playerRobotIndex].rotation.y = cameraControlsYawObject.rotation.y;
-	// initial robot model is facing us (which is backwards), 
-	//   so we must turn it around in order for our robot to look where our camera is looking
-	game_Objects[playerRobotIndex].rotation.y += Math.PI;
+	game_Objects[playerRobotIndex].rotation.copy(cameraControlsYawObject.rotation);
+	game_Objects[playerRobotIndex].rotateY(Math.PI);
 	game_Objects[playerRobotIndex].updateMatrixWorld(true); // required for writing to uniforms below
 
 	uObj3D_InvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
 	uObj3D_InvMatrices[playerRobotIndex].elements[15] = ROBOT_MODEL_ID;
-
 
 
 	// raycast game objects
@@ -960,17 +966,26 @@ function doStartGameAnimation()
 		if (animationTargetPosition.z > 0)
 		{
 			if (animationTargetPosition.x > 0)
+			{
 				cameraControlsYawObject.rotation.y += Math.PI * 0.5;
+			}	
 			if (animationTargetPosition.x < 0)
+			{
 				cameraControlsYawObject.rotation.y -= Math.PI * 0.5;
+			}		
 		}
 		if (animationTargetPosition.z < 0)
 		{
 			cameraControlsYawObject.rotation.y = Math.PI;
+
 			if (animationTargetPosition.x > 0)
+			{
 				cameraControlsYawObject.rotation.y -= Math.PI * 0.5;
+			}	
 			if (animationTargetPosition.x < 0)
+			{
 				cameraControlsYawObject.rotation.y += Math.PI * 0.5;
+			}	
 		}
 
 		apertureSize = userCurrentAperture;
@@ -1011,7 +1026,8 @@ function doTeleportAnimation()
 		pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
 
 		cameraControlsObject.position.copy(animationTargetPosition);
-		cameraControlsYawObject.rotation.y = animationOldRotationY + Math.PI;
+		cameraControlsYawObject.rotation.y = animationOldRotationY;
+		cameraControlsYawObject.rotateY(Math.PI);
 		cameraControlsPitchObject.rotation.x = animationTargetRotationX;
 		worldCamera.rotation.set(0, 0, 0);
 
