@@ -644,20 +644,20 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 		}
 		if (isReflectionTime == FALSE && diffuseCount == 0 && hitObjectID != previousObjectID)
 		{
-			objectNormal = nl;
-			objectColor = hitColor;
+			objectNormal += nl;
+			objectColor += hitColor;
 		}
 		if (reflectionNeedsToBeSharp == TRUE && reflectionBounces == 0)
 		{
-			objectNormal = nl;
-			objectColor = hitColor;
+			objectNormal += nl;
+			objectColor += hitColor;
 		}
 
 
 		if (hitT == INFINITY)
 		{
 			if (bounces == 0)
-				pixelSharpness = 1.01;
+				pixelSharpness = 1.0;
 			
 			if (bounceIsSpecular == TRUE || sampleLight == TRUE)
 				accumCol += mask * getSkyColor(rayDirection);
@@ -891,12 +891,12 @@ void main( void )
 	currentPixel.a = pixelSharpness;
 
 	// check for all edges that are not light sources
-	if (pixelSharpness < 1.01 && (colorDifference >= 1.0 || normalDifference >= 1.0 || objectDifference >= 1.0)) // all other edges
+	if (pixelSharpness < 1.01 && (colorDifference >= 1.0 || normalDifference >= 0.1 || objectDifference >= 1.0)) // all other edges
 		currentPixel.a = pixelSharpness = 1.0;
 
 	// makes light source edges (shape boundaries) more stable
-	if (previousPixel.a == 1.01)
-		currentPixel.a = 1.01;
+	// if (previousPixel.a == 1.01)
+	// 	currentPixel.a = 1.01;
 
 	// makes sharp edges more stable
 	if (previousPixel.a == 1.0)
