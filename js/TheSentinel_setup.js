@@ -392,7 +392,7 @@ function initSceneData()
 
 	// pixelRatio is resolution - range: 0.5(half resolution) to 1.0(full resolution)
 	pixelRatio = mouseControl ? 0.75 : 0.75; // less demanding on battery-powered mobile devices
-
+	
 	EPS_intersect = 0.01;
 
 	// position and orient camera
@@ -1468,6 +1468,7 @@ function initSceneData()
 
 function buildNewLevel(changeLevelColor)
 {
+	dissolveEffectStrength = 0;
 
 	for (let i = 0; i < numVertices; i++)
 	{
@@ -2445,8 +2446,8 @@ function updateVariablesAndUniforms()
 			useGenericInput = false;
 			inGame = true;
 			playingStartGameAnimation = true;
-
-			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			viewRaySphereRadius = 0.01;
+			//pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
 
 			animationOldPosition.copy(cameraControlsObject.position);
 			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
@@ -2590,6 +2591,10 @@ function updateVariablesAndUniforms()
 	parentRotationObject.rotateOnAxis(axisOfRotation, lightAngle);
 	sphereObject.getWorldPosition(sphereObjectPosition);
 	pathTracingUniforms.uSunDirection.value.copy(sphereObjectPosition.normalize());
+
+	// update all other uniforms
+	pathTracingUniforms.uViewRaySphereRadius.value = viewRaySphereRadius;
+	pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 
 
 	// INFO
