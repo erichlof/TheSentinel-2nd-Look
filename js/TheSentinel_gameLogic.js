@@ -198,9 +198,8 @@ function doGameLogic()
 
 		if (canDoResolveEffect)
 		{
-			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			viewRaySphereRadius = 0.01;
 			dissolveEffectStrength = 1.0;
-			pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 			doingResolveEffect = true;
 			pathTracingUniforms.uDoingDissolveEffect.value = doingResolveEffect;
 			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
@@ -268,9 +267,8 @@ function doGameLogic()
 
 		if (canDoResolveEffect)
 		{
-			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			viewRaySphereRadius = 0.01;
 			dissolveEffectStrength = 1.0;
-			pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 			doingResolveEffect = true;
 			pathTracingUniforms.uDoingDissolveEffect.value = doingResolveEffect;
 			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
@@ -363,9 +361,8 @@ function doGameLogic()
 
 		if (canDoResolveEffect)
 		{
-			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			viewRaySphereRadius = 0.01;
 			dissolveEffectStrength = 1.0;
-			pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 			doingResolveEffect = true;
 			pathTracingUniforms.uDoingDissolveEffect.value = doingResolveEffect;
 			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
@@ -400,7 +397,7 @@ function doGameLogic()
 			//worldCamera.lookAt(animationTargetPosition); // a little too jarring when teleport starts
 
 			userCurrentAperture = apertureSize;
-			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			viewRaySphereRadius = 0.01;
 
 			playingTeleportAnimation = true;
 			pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
@@ -425,7 +422,7 @@ function doGameLogic()
 			//worldCamera.lookAt(animationTargetPosition); // a little too jarring when teleport starts
 
 			userCurrentAperture = apertureSize;
-			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			viewRaySphereRadius = 0.01;
 
 			playingTeleportAnimation = true;
 			pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
@@ -452,7 +449,7 @@ function doGameLogic()
 			animationOldRotationX = cameraControlsPitchObject.rotation.x;
 
 			userCurrentAperture = apertureSize;
-			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			viewRaySphereRadius = 0.01;
 
 			playingWinAnimation = true;
 			return;
@@ -469,7 +466,7 @@ function doGameLogic()
 			animationOldRotationX = cameraControlsPitchObject.rotation.x;
 
 			userCurrentAperture = apertureSize;
-			pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+			viewRaySphereRadius = 0.01;
 
 			playingLoseAnimation = true;
 			return;
@@ -667,7 +664,7 @@ function doGameLogic()
 		// 	" | level:" + game_Objects[selectedObjectIndex].level.toFixed(0) + " | tileIndex:" + game_Objects[selectedObjectIndex].tileIndex + "<br>";
 		
 		if (!doingDissolveEffect && !doingResolveEffect)
-			pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
+			viewRaySphereRadius = 2.0;
 
 		viewRayTargetPosition.copy(closestHitPoint);
 		focusDistance = closestT; 
@@ -763,7 +760,7 @@ function doGameLogic()
 	if (intersectArray.length > 0 && intersectArray[0].distance < closestT)
 	{
 		if (!doingDissolveEffect && !doingResolveEffect)
-			pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
+			viewRaySphereRadius = 2.0;
 
 		raycastIndex = Math.floor(intersectArray[0].face.a / 6);
 
@@ -832,7 +829,7 @@ function onDocumentMouseDown(event)
 	// do a deep copy of each gameObject's higher neighbor element, essentially compacting the gameObjects array by 1 element
 	if (!sentinelAbsorbed && selectedObjectIndex >= 0 && game_Objects[selectedObjectIndex].tag != 'PEDESTAL_MODEL_ID')
 	{
-		pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
+		viewRaySphereRadius = 0.01;
 		doingDissolveEffect = true;
 		pathTracingUniforms.uDoingDissolveEffect.value = doingDissolveEffect;
 	}
@@ -852,7 +849,6 @@ function doDissolveEffect()
 	{
 		progressAcceleration = 0;
 		dissolveEffectStrength = 0;
-		pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 		doingDissolveEffect = false;
 		pathTracingUniforms.uDoingDissolveEffect.value = doingDissolveEffect;
 
@@ -915,8 +911,6 @@ function doDissolveEffect()
 		return;
 
 	} // end if (dissolveEffectStrength > 1)
-	
-	pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 
 } // end function doDissolveEffect()
 
@@ -932,14 +926,11 @@ function doResolveEffect()
 	{
 		progressAcceleration = 0;
 		dissolveEffectStrength = 0;
-		pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 		doingResolveEffect = false;
 		pathTracingUniforms.uDoingDissolveEffect.value = doingResolveEffect;
 		pathTracingUniforms.uResolvingObjectIndex.value = -10;
 		return;
 	} // end if (dissolveEffectStrength < 0)
-	
-	pathTracingUniforms.uDissolveEffectStrength.value = dissolveEffectStrength;
 
 } // end function doResolveEffect()
 
@@ -991,7 +982,7 @@ function doStartGameAnimation()
 		apertureSize = userCurrentAperture;
 		pathTracingUniforms.uApertureSize.value = apertureSize;
 
-		pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
+		viewRaySphereRadius = 2.0;
 
 		return;
 	}
@@ -1034,7 +1025,7 @@ function doTeleportAnimation()
 		apertureSize = userCurrentAperture;
 		pathTracingUniforms.uApertureSize.value = apertureSize;
 
-		pathTracingUniforms.uViewRaySphereRadius.value = 2.0;
+		viewRaySphereRadius = 2.0;
 		
 		return;
 	}
