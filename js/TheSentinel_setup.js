@@ -1468,8 +1468,7 @@ function initSceneData()
 
 function buildNewLevel(changeLevelColor)
 {
-	dissolveEffectStrength = 0;
-
+	
 	for (let i = 0; i < numVertices; i++)
 	{
 		for (let j = 0; j < numVertices; j++)
