@@ -980,7 +980,6 @@ function doStartGameAnimation()
 		}
 
 		apertureSize = userCurrentAperture;
-		pathTracingUniforms.uApertureSize.value = apertureSize;
 
 		viewRaySphereRadius = 2.0;
 
@@ -993,7 +992,9 @@ function doStartGameAnimation()
 	cameraControlsObject.position.add(animationTargetVector);
 
 	cameraIsMoving = false;
-	pathTracingUniforms.uApertureSize.value = 0.3;
+
+	apertureSize = 0.3;
+
 	viewRayTargetPosition.copy(animationTargetPosition);
 
 	worldCamera.lookAt(animationTargetPosition);
@@ -1023,7 +1024,6 @@ function doTeleportAnimation()
 		worldCamera.rotation.set(0, 0, 0);
 
 		apertureSize = userCurrentAperture;
-		pathTracingUniforms.uApertureSize.value = apertureSize;
 
 		viewRaySphereRadius = 2.0;
 		
@@ -1039,7 +1039,8 @@ function doTeleportAnimation()
 	cameraControlsPitchObject.rotation.x = animationOldRotationX;
 	cameraIsMoving = false;
 
-	pathTracingUniforms.uApertureSize.value = 0.2;
+	apertureSize = 0.2;
+	
 	viewRayTargetPosition.copy(animationTargetPosition);
 	//worldCamera.lookAt(animationTargetPosition); // a little too jarring when teleport starts
 
@@ -1063,7 +1064,6 @@ function doLoseAnimation()
 		worldCamera.rotation.set(0, 0, 0);
 
 		apertureSize = 0.0;
-		pathTracingUniforms.uApertureSize.value = apertureSize;
 
 		useGenericInput = true;
 		inGame = false;
@@ -1090,7 +1090,8 @@ function doLoseAnimation()
 	cameraControlsPitchObject.rotation.x = animationOldRotationX;
 	cameraIsMoving = true;
 
-	pathTracingUniforms.uApertureSize.value = 0.2;
+	apertureSize = 0.2;
+	
 	viewRayTargetPosition.copy(animationTargetPosition);
 	worldCamera.lookAt(animationTargetPosition);
 	
@@ -1115,7 +1116,6 @@ function doWinAnimation()
 		worldCamera.rotation.set(0, 0, 0);
 
 		apertureSize = 0.0;
-		pathTracingUniforms.uApertureSize.value = apertureSize;
 
 		useGenericInput = true;
 		inGame = false;
@@ -1149,7 +1149,7 @@ function doWinAnimation()
 	uObj3D_InvMatrices[playerRobotIndex].copy(game_Objects[playerRobotIndex].matrixWorld).invert();
 	uObj3D_InvMatrices[playerRobotIndex].elements[15] = ROBOT_MODEL_ID;
 
-	pathTracingUniforms.uApertureSize.value = 0.2;
+	apertureSize = 0.2;
 	viewRayTargetPosition.copy(game_Objects[playerRobotIndex].position);
 	worldCamera.lookAt(game_Objects[playerRobotIndex].position);
 
