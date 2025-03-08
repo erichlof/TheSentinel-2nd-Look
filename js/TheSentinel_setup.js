@@ -2439,14 +2439,13 @@ function updateVariablesAndUniforms()
 {
 	if ( !inGame )
 	{
-		if (keyPressed('Enter') && canPressEnter)
+		if (keyPressed('KeyE') && canPressEnter)
 		{
 			canPressEnter = false;
 			useGenericInput = false;
 			inGame = true;
 			playingStartGameAnimation = true;
 			viewRaySphereRadius = 0.01;
-			//pathTracingUniforms.uViewRaySphereRadius.value = 0.01;
 
 			animationOldPosition.copy(cameraControlsObject.position);
 			animationTargetPosition.copy(game_Objects[playerRobotIndex].position);
@@ -2464,7 +2463,7 @@ function updateVariablesAndUniforms()
 				turnAngle = (Math.PI * 2) - turnAngle;
 			cameraControlsYawObject.rotation.y = turnAngle; */
 		}
-		if (!keyPressed('Enter') )
+		if (!keyPressed('KeyE') )
 		{
 			canPressEnter = true;
 		}
@@ -2480,7 +2479,6 @@ function updateVariablesAndUniforms()
 			cameraControlsYawObject.rotation.set(0, 0, 0);
 			cameraControlsPitchObject.rotation.set(-0.4, 0, 0);
 			apertureSize = 0.0;
-			pathTracingUniforms.uApertureSize.value = apertureSize;
 
 			buildNewLevel(true);
 		}
@@ -2497,11 +2495,6 @@ function updateVariablesAndUniforms()
 		fovScale = worldCamera.fov * 0.5 * (Math.PI / 180.0);
 		pathTracingUniforms.uVLen.value = Math.tan(fovScale);
 		pathTracingUniforms.uULen.value = pathTracingUniforms.uVLen.value * worldCamera.aspect;
-	}
-	if (apertureSize > 1.0)
-	{
-		apertureSize = 1.0;
-		pathTracingUniforms.uApertureSize.value = apertureSize;
 	}
 		
 	
@@ -2551,7 +2544,6 @@ function updateVariablesAndUniforms()
 			apertureSize += 0.01;
 			if (apertureSize > 1.0)
 				apertureSize = 1.0;
-			pathTracingUniforms.uApertureSize.value = apertureSize;
 			cameraIsMoving = true;
 			increaseAperture = false;
 		}
@@ -2560,10 +2552,10 @@ function updateVariablesAndUniforms()
 			apertureSize -= 0.01;
 			if (apertureSize < 0.0)
 				apertureSize = 0.0;
-			pathTracingUniforms.uApertureSize.value = apertureSize;
 			cameraIsMoving = true;
 			decreaseAperture = false;
 		}
+
 	} // end if (!useGenericInput)
 
 	
@@ -2600,14 +2592,12 @@ function updateVariablesAndUniforms()
 
 	if (inGame)
 		cameraInfoElement.innerHTML += "player Energy: " + playerUnitsOfEnergy + "<br>" + "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Click to start | " + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
+		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" +
 		"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" +
 		"Press H: Hyperspace to random tile- warning, costs 3 energy! | Hyperspace while standing on Sentinel's pedestal to Win!";
 	else
-		cameraInfoElement.innerHTML = "player Energy: " + playerUnitsOfEnergy + "<br>" + "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + "Click to start | " + "Press SPACEBAR to generate new landscape | Press ENTER to enter landscape" + "<br>" +
-		"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" + 
-		"Press H: Hyperspace to random tile- warning, costs 3 energy! | Hyperspace while standing on Sentinel's pedestal to Win!";
+		cameraInfoElement.innerHTML = "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) + " / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + 
+		"Click to start | " + "Press SPACEBAR to generate new landscape | Press E to enter landscape";
 			
 
 } // end function updateVariablesAndUniforms()
