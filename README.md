@@ -9,7 +9,7 @@ Click to Play --> https://erichlof.github.io/TheSentinel-2nd-Look/TheSentinel_2n
 * Right/Left Arrows to open/close camera aperture (depth of field effect)
 * WASD,QZ to fly camera in Landscape selection mode (disabled when entering your Robot in game mode)
 * Press SPACEBAR to generate a new random landscape (cycles through 4 color themes)
-* Press ENTER to enter the player's starting Robot (this is where you start each game level)
+* Press E to enter the player's starting Robot (this is where you start each game level)
 * With a checkerboard tile (or boulder) selected, Press R to create another Robot
 * With that new robot selected (or its checkerboard tile selected), Press E to Enter that other robot
 * With a checkerboard tile (or another boulder) selected, Press B to create a Boulder (a base on which more Boulders or another Robot can be stacked)
