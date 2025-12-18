@@ -37,12 +37,16 @@ let vertexIndex = 0;
 let nextRowIndex = 0;
 let highestLevel = 0;
 let lowestLevel = 0;
+let keyPressedSpace = false;
+let keyPressedB = false;
+let keyPressedR = false;
+let keyPressedE = false;
+let keyPressedT = false;
+let keyPressedH = false;
 let canPressSpace = true;
-let canPressEnter = true;
 let canPressB = true;
 let canPressR = true;
 let canPressE = true;
-let canPressA = true;
 let canPressT = true;
 let canPressH = true;
 let inGame = false;
@@ -2439,9 +2443,16 @@ function updateVariablesAndUniforms()
 {
 	if ( !inGame )
 	{
-		if (keyPressed('KeyE') && canPressEnter)
+		// reset keyboard state
+		keyPressedSpace = keyPressedE = false;
+
+		// poll keyboard for key presses
+		if (keyPressed('Space') || button5Pressed || button6Pressed) keyPressedSpace = true;
+		if (keyPressed('KeyE') || button3Pressed) keyPressedE = true;
+
+		if (keyPressedE && canPressE)
 		{
-			canPressEnter = false;
+			canPressE = false;
 			useGenericInput = false;
 			inGame = true;
 			playingStartGameAnimation = true;
@@ -2463,13 +2474,13 @@ function updateVariablesAndUniforms()
 				turnAngle = (Math.PI * 2) - turnAngle;
 			cameraControlsYawObject.rotation.y = turnAngle; */
 		}
-		if (!keyPressed('KeyE') )
+		if (!keyPressedE)
 		{
-			canPressEnter = true;
+			canPressE = true;
 		}
 	
 
-		if (keyPressed('Space') && canPressSpace)
+		if (keyPressedSpace && canPressSpace)
 		{
 			canPressSpace = false;
 			useGenericInput = true;
@@ -2482,7 +2493,7 @@ function updateVariablesAndUniforms()
 
 			buildNewLevel(true);
 		}
-		if (!keyPressed('Space') )
+		if (!keyPressedSpace)
 		{
 			canPressSpace = true;
 		}
@@ -2590,14 +2601,26 @@ function updateVariablesAndUniforms()
 
 	// INFO
 
-	if (inGame)
-		cameraInfoElement.innerHTML += "player Energy: " + playerUnitsOfEnergy + "<br>" + "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
-		" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" +
-		"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" +
-		"Press H: Hyperspace to random tile- warning, costs 3 energy! | Hyperspace while standing on Sentinel's pedestal to Win!";
-	else
-		cameraInfoElement.innerHTML = "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) + " / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + 
-		"Click to start | " + "Press SPACEBAR to generate new landscape | Press E to enter landscape";
+	if (mouseControl)
+	{
+		if (inGame)
+			cameraInfoElement.innerHTML += "player Energy: " + playerUnitsOfEnergy + "<br>" + "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) +
+			" / FocusDistance: " + focusDistance.toFixed(1) + "<br>" +
+			"Press T: place Tree | B: place Boulder | R: place Robot | E: Enter another robot | Click: Absorb object" + "<br>" +
+			"Press H: Hyperspace to random tile- warning, costs 3 energy! | Hyperspace while standing on Sentinel's pedestal to Win!";
+		else
+			cameraInfoElement.innerHTML = "FOV: " + worldCamera.fov + " / Aperture: " + apertureSize.toFixed(2) + " / FocusDistance: " + focusDistance.toFixed(1) + "<br>" + 
+			"Click to start | " + "Press SPACEBAR to generate new landscape | Press E to enter landscape";
+	}
+
+	if (!mouseControl)
+	{
+		if (inGame)
+			cameraInfoElement.innerHTML = "player Energy: " + playerUnitsOfEnergy;
+		else
+			cameraInfoElement.innerHTML = "Press small UP/DOWN arrows to generate new landscape | Press big UP arrow to enter landscape";
+	}
+	
 			
 
 } // end function updateVariablesAndUniforms()
