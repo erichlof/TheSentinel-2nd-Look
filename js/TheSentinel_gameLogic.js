@@ -104,10 +104,12 @@ function doGameLogic()
 	} // end if (!playingTeleportAnimation)
 	
 
-	cameraInfoElement.innerHTML = "DEBUG: Sentinel sees your Head: " + playerHeadIsVisibleToSentinel + 
+	if (mouseControl)
+	{
+		cameraInfoElement.innerHTML = "DEBUG: Sentinel sees your Head: " + playerHeadIsVisibleToSentinel + 
 					" | Sentinel sees your standingTile/Boulder: " + playerTileIsVisibleToSentinel + "<br>";
-
-
+	}
+	
 
 	// if doing any animations, temporarily skip player input until the animation is finished
 	if (playingStartGameAnimation)
@@ -144,7 +146,18 @@ function doGameLogic()
 
 	// otherwise if no animations are playing, get player Input during game mode
 
-	if (keyPressed('KeyT') && canPressT && !keyPressed('KeyB') && !keyPressed('KeyR') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
+	// reset keyboard state
+	keyPressedB = keyPressedR = keyPressedE = keyPressedT = keyPressedH = false;
+
+	// poll keyboard for key presses
+	if (keyPressed('KeyB') || button1Pressed) keyPressedB = true;
+	if (keyPressed('KeyR') || button4Pressed) keyPressedR = true;
+	if (keyPressed('KeyE') || button3Pressed) keyPressedE = true;
+	if (keyPressed('KeyT') || button2Pressed) keyPressedT = true;
+	if (keyPressed('KeyH') || button5Pressed) keyPressedH = true;
+
+
+	if (keyPressedT && canPressT && !keyPressedB && !keyPressedR && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressT = false;
 
@@ -206,13 +219,13 @@ function doGameLogic()
 		}
 		canDoResolveEffect = false;
 		
-	} // end if (keyPressed('KeyT') && canPressT && !keyPressed('KeyB') && !keyPressed('KeyR'))
-	if ( !keyPressed('KeyT') )
+	} // end if (keyPressedT && canPressT && !keyPressedB && !keyPressedR)
+	if ( !keyPressedT )
 	{
 		canPressT = true;
 	}
 
-	if (keyPressed('KeyB') && canPressB && !keyPressed('KeyT') && !keyPressed('KeyR') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
+	if (keyPressedB && canPressB && !keyPressedT && !keyPressedR && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressB = false;
 
@@ -275,13 +288,13 @@ function doGameLogic()
 		}
 		canDoResolveEffect = false;
 		
-	} // end if (keyPressed('KeyB') && canPressB && !keyPressed('KeyT') && !keyPressed('KeyR'))
-	if ( !keyPressed('KeyB') )
+	} // end if (keyPressedB && canPressB && !keyPressedT && !keyPressedR)
+	if ( !keyPressedB )
 	{
 		canPressB = true;
 	}
 
-	if (keyPressed('KeyR') && canPressR && !keyPressed('KeyB') && !keyPressed('KeyT') && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
+	if (keyPressedR && canPressR && !keyPressedB && !keyPressedT && raycastIndex != game_Objects[playerRobotIndex].tileIndex)
 	{
 		canPressR = false;
 
@@ -368,13 +381,13 @@ function doGameLogic()
 			pathTracingUniforms.uResolvingObjectIndex.value = gameObjectIndex;
 		}
 		canDoResolveEffect = false;
-	} // end if (keyPressed('KeyR') && canPressR && !keyPressed('KeyB') && !keyPressed('KeyT'))
-	if (!keyPressed('KeyR') )
+	} // end if (keyPressedR && canPressR && !keyPressedB && !keyPressedT)
+	if (!keyPressedR )
 	{
 		canPressR = true;
 	}
 
-	if (keyPressed('KeyE') && canPressE)
+	if (keyPressedE && canPressE)
 	{
 		canPressE = false;
 
@@ -428,13 +441,13 @@ function doGameLogic()
 			pathTracingUniforms.uPlayingTeleportAnimation.value = playingTeleportAnimation;
 			return;
 		}
-	} // end if (keyPressed('KeyE') && canPressE)
-	if (!keyPressed('KeyE') )
+	} // end if (keyPressedE && canPressE)
+	if (!keyPressedE )
 	{
 		canPressE = true;
 	}
 
-	if (keyPressed('KeyH') && canPressH)
+	if (keyPressedH && canPressH)
 	{
 		canPressH = false;
 
@@ -615,8 +628,8 @@ function doGameLogic()
 			updateTopLevel_BVH();
 
 		} // end if (potentialPlacementTileIndeces.length > 0)
-	} // end if (keyPressed('KeyH') && canPressH)
-	if (!keyPressed('KeyH') )
+	} // end if (keyPressedH && canPressH)
+	if (!keyPressedH )
 	{
 		canPressH = true;
 	}
@@ -817,8 +830,8 @@ function doGameLogic()
 
 function onDocumentMouseDown(event)
 {
-	if (!inGame || playingTeleportAnimation || keyPressed('KeyR') || keyPressed('KeyE') || 
-		keyPressed('KeyB') || keyPressed('KeyT') || keyPressed('Space') || keyPressed('Enter') )
+	if (!inGame || playingTeleportAnimation || keyPressedR || keyPressedE || 
+		keyPressedB || keyPressedT || keyPressedH || keyPressed('Space') )
 		return;
 
 	event.preventDefault();
