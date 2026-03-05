@@ -715,7 +715,7 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 
 			bounceIsSpecular = FALSE;
 
-			rayDirection = randomDirectionInSpecularLobe(uSunDirection, 0.03);
+			rayDirection = randomDirectionInSpecularLobe(nl, uSunDirection, 0.03);
 			rayOrigin = x + nl * uEPS_intersect;
 			
 			mask *= clamp(dot(nl, rayDirection), 0.0, 1.0);
@@ -763,7 +763,7 @@ vec3 CalculateRadiance( out vec3 objectNormal, out vec3 objectColor, out float o
 				
 			bounceIsSpecular = FALSE;
 			
-			rayDirection = randomDirectionInSpecularLobe(uSunDirection, 0.03);
+			rayDirection = randomDirectionInSpecularLobe(nl, uSunDirection, 0.03);
 			rayOrigin = x + nl * uEPS_intersect;
 			
 			mask *= clamp(dot(nl, rayDirection), 0.0, 1.0);
