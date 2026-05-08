@@ -71,7 +71,7 @@ let landscape_triangle_array;
 let landscape_triangleDataTexture;
 let landscape_aabb_array;
 let landscape_aabbDataTexture;
-let landscape_totalWork;
+let landscape_aabbIndexList;
 
 let TREE_MODEL_ID = 0;
 let BOULDER_MODEL_ID = 1;
@@ -113,7 +113,7 @@ let tree_vca;
 let tree_vna;
 let tree_triangle_array; // needed for BVH creation
 let tree_aabb_array; // needed for BVH creation
-let tree_totalWork;
+let tree_aabbIndexList;
 
 let boulder_modelMesh;
 let boulder_modelMaterialList = [];
@@ -124,7 +124,7 @@ let boulder_vca;
 let boulder_vna;
 let boulder_triangle_array;
 let boulder_aabb_array;
-let boulder_totalWork;
+let boulder_aabbIndexList;
 
 let robot_modelMesh;
 let robot_modelMaterialList = [];
@@ -135,7 +135,7 @@ let robot_vca;
 let robot_vna;
 let robot_triangle_array;
 let robot_aabb_array;
-let robot_totalWork;
+let robot_aabbIndexList;
 
 let sentry_modelMesh;
 let sentry_modelMaterialList = [];
@@ -146,7 +146,7 @@ let sentry_vca;
 let sentry_vna;
 let sentry_triangle_array;
 let sentry_aabb_array;
-let sentry_totalWork;
+let sentry_aabbIndexList;
 
 let meanie_modelMesh;
 let meanie_modelMaterialList = [];
@@ -157,7 +157,7 @@ let meanie_vca;
 let meanie_vna;
 let meanie_triangle_array;
 let meanie_aabb_array;
-let meanie_totalWork;
+let meanie_aabbIndexList;
 
 let pedestal_modelMesh;
 let pedestal_modelMaterialList = [];
@@ -168,7 +168,7 @@ let pedestal_vca;
 let pedestal_vna;
 let pedestal_triangle_array;
 let pedestal_aabb_array;
-let pedestal_totalWork;
+let pedestal_aabbIndexList;
 
 let sentinel_modelMesh;
 let sentinel_modelMaterialList = [];
@@ -179,7 +179,7 @@ let sentinel_vca;
 let sentinel_vna;
 let sentinel_triangle_array;
 let sentinel_aabb_array;
-let sentinel_totalWork;
+let sentinel_aabbIndexList;
 
 let vp0 = new THREE.Vector3();
 let vp1 = new THREE.Vector3();
@@ -197,7 +197,7 @@ let boundingSphereRadius = 0;
 
 let topLevel_total_number_of_objects = 0;
 let topLevel_aabb_array;
-let topLevel_totalWork;
+let topLevel_aabbIndexList;
 let iX32 = 0;
 let iX9 = 0;
 let iX8 = 0;
@@ -460,7 +460,7 @@ function initSceneData()
 
 	// TREE MODEL
 	tree_total_number_of_triangles = tree_modelMesh.geometry.attributes.position.array.length / 9;
-	tree_totalWork = new Uint32Array(tree_total_number_of_triangles);
+	tree_aabbIndexList = new Uint32Array(tree_total_number_of_triangles);
 	tree_triangle_array = new Float32Array(256 * 256 * 4);
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
 	tree_aabb_array = new Float32Array(256 * 256 * 4);
@@ -471,7 +471,7 @@ function initSceneData()
 	
 	// BOULDER MODEL
 	boulder_total_number_of_triangles = boulder_modelMesh.geometry.attributes.position.array.length / 9;
-	boulder_totalWork = new Uint32Array(boulder_total_number_of_triangles);
+	boulder_aabbIndexList = new Uint32Array(boulder_total_number_of_triangles);
 	boulder_triangle_array = new Float32Array(256 * 256 * 4);
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
 	boulder_aabb_array = new Float32Array(256 * 256 * 4);
@@ -482,7 +482,7 @@ function initSceneData()
 
 	// ROBOT MODEL
 	robot_total_number_of_triangles = robot_modelMesh.geometry.attributes.position.array.length / 9;
-	robot_totalWork = new Uint32Array(robot_total_number_of_triangles);
+	robot_aabbIndexList = new Uint32Array(robot_total_number_of_triangles);
 	robot_triangle_array = new Float32Array(256 * 256 * 4);
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
 	robot_aabb_array = new Float32Array(256 * 256 * 4);
@@ -493,7 +493,7 @@ function initSceneData()
 
 	// SENTRY MODEL
 	sentry_total_number_of_triangles = sentry_modelMesh.geometry.attributes.position.array.length / 9;
-	sentry_totalWork = new Uint32Array(sentry_total_number_of_triangles);
+	sentry_aabbIndexList = new Uint32Array(sentry_total_number_of_triangles);
 	sentry_triangle_array = new Float32Array(256 * 256 * 4);
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
 	sentry_aabb_array = new Float32Array(256 * 256 * 4);
@@ -504,7 +504,7 @@ function initSceneData()
 
 	// PEDESTAL MODEL
 	pedestal_total_number_of_triangles = pedestal_modelMesh.geometry.attributes.position.array.length / 9;
-	pedestal_totalWork = new Uint32Array(pedestal_total_number_of_triangles);
+	pedestal_aabbIndexList = new Uint32Array(pedestal_total_number_of_triangles);
 	pedestal_triangle_array = new Float32Array(256 * 256 * 4);
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
 	pedestal_aabb_array = new Float32Array(256 * 256 * 4);
@@ -515,7 +515,7 @@ function initSceneData()
 
 	// SENTINEL MODEL
 	sentinel_total_number_of_triangles = sentinel_modelMesh.geometry.attributes.position.array.length / 9;
-	sentinel_totalWork = new Uint32Array(sentinel_total_number_of_triangles);
+	sentinel_aabbIndexList = new Uint32Array(sentinel_total_number_of_triangles);
 	sentinel_triangle_array = new Float32Array(256 * 256 * 4);
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
 	sentinel_aabb_array = new Float32Array(256 * 256 * 4);
@@ -526,7 +526,7 @@ function initSceneData()
 
 	// MEANIE MODEL
 	meanie_total_number_of_triangles = meanie_modelMesh.geometry.attributes.position.array.length / 9;
-	meanie_totalWork = new Uint32Array(meanie_total_number_of_triangles);
+	meanie_aabbIndexList = new Uint32Array(meanie_total_number_of_triangles);
 	meanie_triangle_array = new Float32Array(256 * 256 * 4);
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
 	meanie_aabb_array = new Float32Array(256 * 256 * 4);
@@ -589,7 +589,7 @@ function initSceneData()
 
 	landscape_total_number_of_triangles = planeMesh.geometry.attributes.position.array.length / 9;
 
-	landscape_totalWork = new Uint32Array(landscape_total_number_of_triangles);
+	landscape_aabbIndexList = new Uint32Array(landscape_total_number_of_triangles);
 
 	landscape_triangle_array = new Float32Array(256 * 256 * 4);
 	// 256 = width of texture, 256 = height of texture, 4 = r,g,b, and a components
@@ -703,16 +703,12 @@ function initSceneData()
 		tree_triangle_array[iX32 + 20] = tree_modelMaterialList[materialNumber].color.g; // r or x
 		tree_triangle_array[iX32 + 21] = tree_modelMaterialList[materialNumber].color.b; // g or y
 
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
 
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+		bounding_box_min.min(vp0).min(vp1).min(vp2);
+		bounding_box_max.max(vp0).max(vp1).max(vp2);
+
+		// use the following for leaves that contain triangles (the default case for all glTF meshes)
+		bounding_box_centroid.copy(vp0).add(vp1).add(vp2).multiplyScalar(0.3333333333333333);
 
 		tree_aabb_array[iX9 + 0] = bounding_box_min.x;
 		tree_aabb_array[iX9 + 1] = bounding_box_min.y;
@@ -724,13 +720,14 @@ function initSceneData()
 		tree_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		tree_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		tree_totalWork[i] = i;
+		tree_aabbIndexList[i] = i;
 
 	} // end for (let i = 0; i < tree_total_number_of_triangles; i++)
 
-
-	//console.log("tree_triangle count:" + tree_totalWork.length);
-	BVH_Build_Iterative(tree_totalWork, tree_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 128;
+	//console.log("tree_triangle count:" + tree_aabbIndexList.length);
+	BVH_QuickBuild(tree_aabbIndexList, tree_aabb_array);
 
 	for (let i = 0; i < tree_total_number_of_triangles; i++)
 	{
@@ -741,7 +738,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodes.length; i++)
+	for (let i = 0; i < bvhNode.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -817,16 +814,12 @@ function initSceneData()
 		boulder_triangle_array[iX32 + 20] = boulder_modelMaterialList[materialNumber].color.g; // r or x
 		boulder_triangle_array[iX32 + 21] = boulder_modelMaterialList[materialNumber].color.b; // g or y
 
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
 
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+		bounding_box_min.min(vp0).min(vp1).min(vp2);
+		bounding_box_max.max(vp0).max(vp1).max(vp2);
+
+		// use the following for leaves that contain triangles (the default case for all glTF meshes)
+		bounding_box_centroid.copy(vp0).add(vp1).add(vp2).multiplyScalar(0.3333333333333333);
 
 		boulder_aabb_array[iX9 + 0] = bounding_box_min.x;
 		boulder_aabb_array[iX9 + 1] = bounding_box_min.y;
@@ -838,13 +831,14 @@ function initSceneData()
 		boulder_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		boulder_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		boulder_totalWork[i] = i;
+		boulder_aabbIndexList[i] = i;
 
 	} // end for (let i = 0; i < boulder_total_number_of_triangles; i++)
 
-
-	//console.log("boulder_triangle count:" + boulder_totalWork.length);
-	BVH_Build_Iterative(boulder_totalWork, boulder_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 128;
+	//console.log("boulder_triangle count:" + boulder_aabbIndexList.length);
+	BVH_QuickBuild(boulder_aabbIndexList, boulder_aabb_array);
 
 	for (let i = 0; i < boulder_total_number_of_triangles; i++)
 	{
@@ -855,7 +849,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodes.length; i++)
+	for (let i = 0; i < bvhNode.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -931,16 +925,12 @@ function initSceneData()
 		robot_triangle_array[iX32 + 20] = robot_modelMaterialList[materialNumber].color.g; // r or x
 		robot_triangle_array[iX32 + 21] = robot_modelMaterialList[materialNumber].color.b; // g or y
 
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
 
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+		bounding_box_min.min(vp0).min(vp1).min(vp2);
+		bounding_box_max.max(vp0).max(vp1).max(vp2);
+
+		// use the following for leaves that contain triangles (the default case for all glTF meshes)
+		bounding_box_centroid.copy(vp0).add(vp1).add(vp2).multiplyScalar(0.3333333333333333);
 
 		robot_aabb_array[iX9 + 0] = bounding_box_min.x;
 		robot_aabb_array[iX9 + 1] = bounding_box_min.y;
@@ -952,13 +942,14 @@ function initSceneData()
 		robot_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		robot_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		robot_totalWork[i] = i;
+		robot_aabbIndexList[i] = i;
 
 	} // end for (let i = 0; i < robot_total_number_of_triangles; i++)
 
-
-	//console.log("robot_triangle count:" + robot_totalWork.length);
-	BVH_Build_Iterative(robot_totalWork, robot_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 128;
+	//console.log("robot_triangle count:" + robot_aabbIndexList.length);
+	BVH_QuickBuild(robot_aabbIndexList, robot_aabb_array);
 
 	for (let i = 0; i < robot_total_number_of_triangles; i++)
 	{
@@ -969,7 +960,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodes.length; i++)
+	for (let i = 0; i < bvhNode.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1046,16 +1037,12 @@ function initSceneData()
 		sentry_triangle_array[iX32 + 20] = sentry_modelMaterialList[materialNumber].color.g; // r or x
 		sentry_triangle_array[iX32 + 21] = sentry_modelMaterialList[materialNumber].color.b; // g or y
 
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
 
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+		bounding_box_min.min(vp0).min(vp1).min(vp2);
+		bounding_box_max.max(vp0).max(vp1).max(vp2);
+
+		// use the following for leaves that contain triangles (the default case for all glTF meshes)
+		bounding_box_centroid.copy(vp0).add(vp1).add(vp2).multiplyScalar(0.3333333333333333);
 
 		sentry_aabb_array[iX9 + 0] = bounding_box_min.x;
 		sentry_aabb_array[iX9 + 1] = bounding_box_min.y;
@@ -1067,13 +1054,14 @@ function initSceneData()
 		sentry_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		sentry_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		sentry_totalWork[i] = i;
+		sentry_aabbIndexList[i] = i;
 
 	} // end for (let i = 0; i < robot_total_number_of_triangles; i++)
 
-
-	//console.log("sentry_triangle count:" + sentry_totalWork.length);
-	BVH_Build_Iterative(sentry_totalWork, sentry_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 128;
+	//console.log("sentry_triangle count:" + sentry_aabbIndexList.length);
+	BVH_QuickBuild(sentry_aabbIndexList, sentry_aabb_array);
 
 	for (let i = 0; i < sentry_total_number_of_triangles; i++)
 	{
@@ -1084,7 +1072,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodes.length; i++)
+	for (let i = 0; i < bvhNode.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1161,16 +1149,12 @@ function initSceneData()
 		pedestal_triangle_array[iX32 + 20] = pedestal_modelMaterialList[materialNumber].color.g; // r or x
 		pedestal_triangle_array[iX32 + 21] = pedestal_modelMaterialList[materialNumber].color.b; // g or y
 
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
 
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+		bounding_box_min.min(vp0).min(vp1).min(vp2);
+		bounding_box_max.max(vp0).max(vp1).max(vp2);
+
+		// use the following for leaves that contain triangles (the default case for all glTF meshes)
+		bounding_box_centroid.copy(vp0).add(vp1).add(vp2).multiplyScalar(0.3333333333333333);
 
 		pedestal_aabb_array[iX9 + 0] = bounding_box_min.x;
 		pedestal_aabb_array[iX9 + 1] = bounding_box_min.y;
@@ -1182,13 +1166,14 @@ function initSceneData()
 		pedestal_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		pedestal_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		pedestal_totalWork[i] = i;
+		pedestal_aabbIndexList[i] = i;
 
 	} // end for (let i = 0; i < robot_total_number_of_triangles; i++)
 
-
-	//console.log("pedestal_triangle count:" + pedestal_totalWork.length);
-	BVH_Build_Iterative(pedestal_totalWork, pedestal_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 128;
+	//console.log("pedestal_triangle count:" + pedestal_aabbIndexList.length);
+	BVH_QuickBuild(pedestal_aabbIndexList, pedestal_aabb_array);
 
 	for (let i = 0; i < pedestal_total_number_of_triangles; i++)
 	{
@@ -1199,7 +1184,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodes.length; i++)
+	for (let i = 0; i < bvhNode.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1276,16 +1261,12 @@ function initSceneData()
 		sentinel_triangle_array[iX32 + 20] = sentinel_modelMaterialList[materialNumber].color.g; // r or x
 		sentinel_triangle_array[iX32 + 21] = sentinel_modelMaterialList[materialNumber].color.b; // g or y
 
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
 
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+		bounding_box_min.min(vp0).min(vp1).min(vp2);
+		bounding_box_max.max(vp0).max(vp1).max(vp2);
+
+		// use the following for leaves that contain triangles (the default case for all glTF meshes)
+		bounding_box_centroid.copy(vp0).add(vp1).add(vp2).multiplyScalar(0.3333333333333333);
 
 		sentinel_aabb_array[iX9 + 0] = bounding_box_min.x;
 		sentinel_aabb_array[iX9 + 1] = bounding_box_min.y;
@@ -1297,13 +1278,14 @@ function initSceneData()
 		sentinel_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		sentinel_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		sentinel_totalWork[i] = i;
+		sentinel_aabbIndexList[i] = i;
 
 	} // end for (let i = 0; i < robot_total_number_of_triangles; i++)
 
-
-	//console.log("sentinel_triangle count:" + sentinel_totalWork.length);
-	BVH_Build_Iterative(sentinel_totalWork, sentinel_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 128;
+	//console.log("sentinel_triangle count:" + sentinel_aabbIndexList.length);
+	BVH_QuickBuild(sentinel_aabbIndexList, sentinel_aabb_array);
 
 	for (let i = 0; i < sentinel_total_number_of_triangles; i++)
 	{
@@ -1314,7 +1296,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodes.length; i++)
+	for (let i = 0; i < bvhNode.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1391,16 +1373,12 @@ function initSceneData()
 		meanie_triangle_array[iX32 + 20] = meanie_modelMaterialList[materialNumber].color.g; // r or x
 		meanie_triangle_array[iX32 + 21] = meanie_modelMaterialList[materialNumber].color.b; // g or y
 
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
 
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+		bounding_box_min.min(vp0).min(vp1).min(vp2);
+		bounding_box_max.max(vp0).max(vp1).max(vp2);
+
+		// use the following for leaves that contain triangles (the default case for all glTF meshes)
+		bounding_box_centroid.copy(vp0).add(vp1).add(vp2).multiplyScalar(0.3333333333333333);
 
 		meanie_aabb_array[iX9 + 0] = bounding_box_min.x;
 		meanie_aabb_array[iX9 + 1] = bounding_box_min.y;
@@ -1412,13 +1390,14 @@ function initSceneData()
 		meanie_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		meanie_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		meanie_totalWork[i] = i;
+		meanie_aabbIndexList[i] = i;
 
 	} // end for (let i = 0; i < robot_total_number_of_triangles; i++)
 
-
-	//console.log("meanie_triangle count:" + meanie_totalWork.length);
-	BVH_Build_Iterative(meanie_totalWork, meanie_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 128;
+	//console.log("meanie_triangle count:" + meanie_aabbIndexList.length);
+	BVH_QuickBuild(meanie_aabbIndexList, meanie_aabb_array);
 
 	for (let i = 0; i < meanie_total_number_of_triangles; i++)
 	{
@@ -1429,7 +1408,7 @@ function initSceneData()
 		}
 	}
 
-	for (let i = 0; i < buildnodes.length; i++)
+	for (let i = 0; i < bvhNode.length; i++)
 	{
 		iX8 = i * 8;
 		for (let j = 0; j < 8; j++)
@@ -1819,16 +1798,12 @@ function buildNewLevel(changeLevelColor)
 		landscape_triangle_array[iX32 + 30] = 0; // b or z
 		landscape_triangle_array[iX32 + 31] = 0; // a or w */
 
-		bounding_box_min.min(vp0);
-		bounding_box_max.max(vp0);
-		bounding_box_min.min(vp1);
-		bounding_box_max.max(vp1);
-		bounding_box_min.min(vp2);
-		bounding_box_max.max(vp2);
 
-		bounding_box_centroid.set((bounding_box_min.x + bounding_box_max.x) * 0.5,
-			(bounding_box_min.y + bounding_box_max.y) * 0.5,
-			(bounding_box_min.z + bounding_box_max.z) * 0.5);
+		bounding_box_min.min(vp0).min(vp1).min(vp2);
+		bounding_box_max.max(vp0).max(vp1).max(vp2);
+
+		// use the following for leaves that contain triangles (the default case for all glTF meshes)
+		bounding_box_centroid.copy(vp0).add(vp1).add(vp2).multiplyScalar(0.3333333333333333);
 
 		landscape_aabb_array[iX9 + 0] = bounding_box_min.x;
 		landscape_aabb_array[iX9 + 1] = bounding_box_min.y;
@@ -1840,15 +1815,14 @@ function buildNewLevel(changeLevelColor)
 		landscape_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		landscape_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		landscape_totalWork[i] = i;
+		landscape_aabbIndexList[i] = i;
 	} // end for (let i = 0; i < landscape_total_number_of_triangles; i++)
 
-
-	console.log("landscape_triangle count:" + landscape_totalWork.length);
-	// Build the BVH acceleration structure, which places a bounding box ('root' of the tree) around all of the 
-	// triangles of the entire mesh, then subdivides each box into 2 smaller boxes.  It continues until it reaches 1 triangle,
-	// which it then designates as a 'leaf'
-	BVH_Build_Iterative(landscape_totalWork, landscape_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 1024;
+	console.log("landscape_triangle count:" + landscape_aabbIndexList.length);
+	
+	BVH_QuickBuild(landscape_aabbIndexList, landscape_aabb_array);
 
 
 	landscape_triangleDataTexture.needsUpdate = true;
@@ -2134,7 +2108,7 @@ function populateLevel()
 
 
 	topLevel_total_number_of_objects = gameObjectIndex + 1;
-	topLevel_totalWork = new Uint32Array(topLevel_total_number_of_objects);
+	topLevel_aabbIndexList = new Uint32Array(topLevel_total_number_of_objects);
 
 	for (let i = 0; i < topLevel_total_number_of_objects; i++)
 	{
@@ -2274,11 +2248,13 @@ function populateLevel()
 		topLevel_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		topLevel_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		topLevel_totalWork[i] = i;
+		topLevel_aabbIndexList[i] = i;
 	} // end for (let i = 0; i < topLevel_total_number_of_objects; i++)
 
-	console.log("topLevel_objects count:" + topLevel_totalWork.length);
-	BVH_Build_Iterative(topLevel_totalWork, topLevel_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 64;
+	//console.log("topLevel_objects count:" + topLevel_aabbIndexList.length);
+	BVH_QuickBuild(topLevel_aabbIndexList, topLevel_aabb_array, true);
 			//  256
 	for (let i = 0; i < 256; i++)
 	{
@@ -2303,7 +2279,7 @@ function populateLevel()
 function updateTopLevel_BVH()
 {
 	topLevel_total_number_of_objects = gameObjectIndex + 1;
-	topLevel_totalWork = new Uint32Array(topLevel_total_number_of_objects);
+	topLevel_aabbIndexList = new Uint32Array(topLevel_total_number_of_objects);
 
 	for (let i = 0; i < topLevel_total_number_of_objects; i++)
 	{
@@ -2422,11 +2398,13 @@ function updateTopLevel_BVH()
 		topLevel_aabb_array[iX9 + 7] = bounding_box_centroid.y;
 		topLevel_aabb_array[iX9 + 8] = bounding_box_centroid.z;
 
-		topLevel_totalWork[i] = i;
+		topLevel_aabbIndexList[i] = i;
 	} // end for (let i = 0; i < topLevel_total_number_of_objects; i++)
 
-	//console.log("topLevel_objects count:" + topLevel_totalWork.length);
-	BVH_Build_Iterative(topLevel_totalWork, topLevel_aabb_array);
+	// the higher the number of BINS, the better quality of resulting BVH tree, but also increases build time
+	N_BINS = 64;
+	//console.log("topLevel_objects count:" + topLevel_aabbIndexList.length);
+	BVH_QuickBuild(topLevel_aabbIndexList, topLevel_aabb_array, true);
 			//  256
 	for (let i = 0; i < 256; i++)
 	{
